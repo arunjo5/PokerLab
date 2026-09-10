@@ -43,22 +43,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Already on Pro' }, { status: 409 })
     }
 
-    let customerId = user.stripeCustomerId
-    if (!customerId) {
-      // the email column holds a username for password accounts; only pass real addresses
-      const customer = await stripe().customers.create({
-        name: user.name ?? undefined,
-        email: user.email && user.email.includes('@') ? user.email : undefined,
-        metadata: { userId },
-      })
-      customerId = customer.id
-      await prisma.user.update({ where: { id: userId }, data: { stripeCustomerId: customerId } })
-    }
+    // first purchase: let checkout create the customer (one fewer stripe round trip);
+    // the webhook stores its id. the email column holds a username for password accounts.
+    const email = user.email && user.email.includes('@') ? user.email : undefined
+    const who = user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: email }
 
     const base = appUrl(request)
     const checkout = await stripe().checkout.sessions.create({
       mode: 'subscription',
-      customer: customerId,
+      ...who,
       line_items: [{ price: priceId(interval)!, quantity: 1 }],
       success_url: `${base}/?billing=success`,
       cancel_url: `${base}/?billing=cancel`,

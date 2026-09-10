@@ -40,7 +40,20 @@ export function getClientIp(req: Request): string {
 const hasUpstash = !!(
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
 )
-const redis = hasUpstash ? Redis.fromEnv() : null
+// one quick retry only; a slow or dead redis must not hold requests
+const redis = hasUpstash ? Redis.fromEnv({ retry: { retries: 1, backoff: () => 100 } }) : null
+
+// upstash gets this long to answer; after a failure it's skipped for the cooldown
+const UPSTASH_TIMEOUT_MS = 1200
+const UPSTASH_COOLDOWN_MS = 60_000
+let upstashDownUntil = 0
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('upstash timeout')), ms)
+    p.then((v) => { clearTimeout(t); resolve(v) }, (e) => { clearTimeout(t); reject(e) })
+  })
+}
 
 const LIMITS = {
   login: { n: 10, window: '5 m', ms: 5 * 60_000 },
@@ -73,12 +86,14 @@ export async function limit(
   kind: Kind,
   identifier: string
 ): Promise<{ ok: boolean; retryAfter: number }> {
-  if (limiters) {
+  if (limiters && Date.now() >= upstashDownUntil) {
     try {
-      const { success, reset } = await limiters[kind].limit(identifier)
+      const { success, reset } = await withTimeout(limiters[kind].limit(identifier), UPSTASH_TIMEOUT_MS)
       return { ok: success, retryAfter: Math.max(0, Math.ceil((reset - Date.now()) / 1000)) }
-    } catch {
-      // redis down — fall through to in-memory
+    } catch (e) {
+      // redis down or slow: fall through to in-memory and stop asking for a while
+      upstashDownUntil = Date.now() + UPSTASH_COOLDOWN_MS
+      console.warn('rate limit: upstash unavailable, using in-memory limits', (e as Error)?.message)
     }
   }
   const cfg = LIMITS[kind]

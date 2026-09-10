@@ -164,37 +164,29 @@ describe('checkout POST interval', () => {
   })
 })
 
-describe('checkout POST customer creation', () => {
-  it('creates the customer once and stores the id', async () => {
+describe('checkout POST customer', () => {
+  it('lets checkout create the customer on a first purchase, with no stripe customer call', async () => {
     await POST(req() as never)
-    expect(h.customersCreate).toHaveBeenCalledTimes(1)
-    expect(update).toHaveBeenCalledWith({ where: { id: 'user1' }, data: { stripeCustomerId: 'cus_new' } })
-    expect(h.sessionsCreate.mock.calls[0][0].customer).toBe('cus_new')
+    expect(h.customersCreate).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+    const args = h.sessionsCreate.mock.calls[0][0]
+    expect(args.customer).toBeUndefined()
+    expect(args.customer_email).toBeUndefined() // the column holds a username
   })
 
-  it('omits the email when the column holds a username', async () => {
-    await POST(req() as never)
-    expect(h.customersCreate).toHaveBeenCalledWith({ name: 'Ada', email: undefined, metadata: { userId: 'user1' } })
-  })
-
-  it('passes a real email address through', async () => {
+  it('prefills a real email address', async () => {
     findUnique.mockResolvedValue({ ...FREE_USER, email: 'ada@example.com' })
     await POST(req() as never)
-    expect(h.customersCreate.mock.calls[0][0].email).toBe('ada@example.com')
-  })
-
-  it('sends no name when the row has none', async () => {
-    findUnique.mockResolvedValue({ ...FREE_USER, name: null, email: null })
-    await POST(req() as never)
-    expect(h.customersCreate).toHaveBeenCalledWith({ name: undefined, email: undefined, metadata: { userId: 'user1' } })
+    expect(h.sessionsCreate.mock.calls[0][0].customer_email).toBe('ada@example.com')
   })
 
   it('reuses an existing stripe customer', async () => {
     findUnique.mockResolvedValue({ ...FREE_USER, stripeCustomerId: 'cus_old' })
     await POST(req() as never)
     expect(h.customersCreate).not.toHaveBeenCalled()
-    expect(update).not.toHaveBeenCalled()
-    expect(h.sessionsCreate.mock.calls[0][0].customer).toBe('cus_old')
+    const args = h.sessionsCreate.mock.calls[0][0]
+    expect(args.customer).toBe('cus_old')
+    expect(args.customer_email).toBeUndefined()
   })
 })
 
@@ -205,7 +197,7 @@ describe('checkout POST session', () => {
     expect(await res.json()).toEqual({ url: 'https://checkout.stripe.com/c/pay/cs_1' })
     expect(h.sessionsCreate).toHaveBeenCalledWith({
       mode: 'subscription',
-      customer: 'cus_new',
+      customer_email: undefined,
       line_items: [{ price: 'price_month', quantity: 1 }],
       success_url: 'https://pokerlab.app/?billing=success',
       cancel_url: 'https://pokerlab.app/?billing=cancel',
