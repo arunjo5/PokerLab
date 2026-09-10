@@ -84,6 +84,7 @@ src/
 
 ## API
 
+- `GET /api/health` — liveness check; a daily Vercel cron hits it so Neon and Upstash never idle out
 - `POST /api/auth/signup` — create a username/password account
 - `GET /api/searches` — list saved hands, newest first, in pages (`?limit=60&cursor=<id>`, `?starred=1`); rows are previews, so range key lists and replay action logs are omitted
 - `GET /api/searches/[id]` — the full saved hand

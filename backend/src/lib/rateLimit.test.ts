@@ -250,3 +250,42 @@ describe('limit() with upstash configured', () => {
     expect((await limit('login', 'u9')).ok).toBe(false)
   })
 })
+
+describe('limit() when upstash is slow or down', () => {
+  it('falls back to memory after the timeout, then skips upstash for the cooldown', async () => {
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const { limit } = await load(true)
+      h.upstashLimit.mockImplementation(() => new Promise(() => {})) // never answers
+      const pending = limit('read', 'id')
+      await vi.advanceTimersByTimeAsync(1200)
+      expect(await pending).toEqual({ ok: true, retryAfter: 0 })
+      expect(h.upstashLimit).toHaveBeenCalledTimes(1)
+      // breaker open: straight to memory
+      expect(await limit('read', 'id')).toEqual({ ok: true, retryAfter: 0 })
+      expect(h.upstashLimit).toHaveBeenCalledTimes(1)
+      // and upstash is tried again once the cooldown passes
+      await vi.advanceTimersByTimeAsync(60_000)
+      h.upstashLimit.mockResolvedValue({ success: true, reset: Date.now() + 1000 })
+      await limit('read', 'id')
+      expect(h.upstashLimit).toHaveBeenCalledTimes(2)
+    } finally {
+      warn.mockRestore()
+      vi.useRealTimers()
+    }
+  })
+
+  it('a rejected upstash call trips the breaker at once', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const { limit } = await load(true)
+      h.upstashLimit.mockRejectedValue(new Error('fetch failed'))
+      expect((await limit('read', 'id')).ok).toBe(true)
+      await limit('read', 'id')
+      expect(h.upstashLimit).toHaveBeenCalledTimes(1)
+    } finally {
+      warn.mockRestore()
+    }
+  })
+})
