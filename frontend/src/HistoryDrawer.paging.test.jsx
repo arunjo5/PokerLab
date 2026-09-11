@@ -37,17 +37,17 @@ function renderDrawer(over = {}) {
 }
 
 const tabFor = (label) => screen.getByText(label).closest('button');
-const capNote = () => screen.queryByText(/Showing your latest/);
+const capNote = () => screen.queryByText(/Keeps your latest/);
 const more = () => document.querySelector('.drawer-more');
 
 describe('HistoryDrawer cap note', () => {
   it('names the plan cap, and falls back to 500 without one', () => {
     const { rerender, props } = renderDrawer({ cap: 25 });
-    expect(capNote()).toHaveTextContent('Showing your latest 25 hands (favorites kept first)');
+    expect(capNote()).toHaveTextContent('Keeps your latest 25 hands, favorites first');
     rerender(<HistoryDrawer {...props} cap={5000} />);
-    expect(capNote()).toHaveTextContent('Showing your latest 5000 hands (favorites kept first)');
+    expect(capNote()).toHaveTextContent('Keeps your latest 5,000 hands, favorites first');
     rerender(<HistoryDrawer {...props} cap={undefined} />);
-    expect(capNote()).toHaveTextContent('Showing your latest 500 hands (favorites kept first)');
+    expect(capNote()).toHaveTextContent('Keeps your latest 500 hands, favorites first');
   });
 
   it('hides the note when signed out, whatever the cap says', () => {

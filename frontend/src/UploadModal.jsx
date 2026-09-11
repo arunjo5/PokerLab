@@ -204,7 +204,7 @@ function UploadModal({ open, onClose, onConfirm }) {
   function confirm() {
     if (!selected.length) return;
     const byNum = new Map(hands.map((h) => [h.number, h]));
-    onConfirm(selected.map((n) => byNum.get(n)).filter(Boolean));
+    onConfirm(selected.map((n) => byNum.get(n)).filter(Boolean), { fileName });
   }
 
   function reset() {

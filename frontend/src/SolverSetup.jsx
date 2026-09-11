@@ -236,7 +236,7 @@ function SideRow({ side, label, onEdit }) {
           <span className={'sv-pos-badge ' + (label === 'OOP' ? 'oop' : 'ip')}>{label}</span>
           {label === 'OOP' ? 'Out of position' : 'In position'}
         </div>
-        <div className="sv-range-meta">{isHand ? 'Specific hand · 1 combo' : hasRange ? `Range · ${combos} combos · ${pct}% of hands` : 'Not set — choose a hand or range'}</div>
+        <div className="sv-range-meta">{isHand ? 'Specific hand · 1 combo' : hasRange ? `Range · ${combos} combos · ${pct}% of hands` : 'Choose a hand or range'}</div>
         {isHand ? (
           <button className="btn btn-ghost sv-edit-range" onClick={() => onEdit('hand')}>Edit hand</button>
         ) : hasRange ? (
@@ -259,7 +259,7 @@ function EquityReadout({ oopSide, ipSide, board }) {
     return (
       <div className="sv-equity-card">
         <div className="sv-equity-head"><div className="sv-field-label">Equity</div></div>
-        <div className="sv-equity-empty">All combos are blocked by the board or the opposing hand — nothing to run.</div>
+        <div className="sv-equity-empty">Nothing to run. All combos are blocked by the board or the opposing hand.</div>
       </div>
     );
   }

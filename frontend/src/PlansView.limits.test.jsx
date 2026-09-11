@@ -100,6 +100,7 @@ describe('freeFeatures / proFeatures', () => {
       'Save up to 12,345 hands',
       '42 saved ranges and 43 saved solves',
       '900 permanent short links',
+      'Session stats from your PokerNow imports',
       'Support PokerLab’s development',
     ]);
   });

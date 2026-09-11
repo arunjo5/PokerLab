@@ -28,6 +28,7 @@ export function proFeatures(limits = DEFAULT_LIMITS) {
     `Save up to ${fmt(l.saveCap)} hands`,
     `${l.ranges} saved ranges and ${l.solves} saved solves`,
     `${l.shareLinks} permanent short links`,
+    'Session stats from your PokerNow imports',
     'Support PokerLab’s development',
   ];
 }

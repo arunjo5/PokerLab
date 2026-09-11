@@ -5,6 +5,7 @@ import { ReplayEngine } from './replayerEngine.js';
 import { PlayingCard, CardBack } from './Cards.jsx';
 import { CardPicker } from './Pickers.jsx';
 import { ShareModal } from './ShareModal.jsx';
+import { useFlash } from './hooks.js';
 import { encodeReplay, decodeReplay } from './replayShare.js';
 
 // All 169 starting-hand keys, for unknown villains (treated as a random range).
@@ -838,7 +839,7 @@ export function ReplayerView({ initialHand, onExit, onSaveToHistory, onSetFavori
   const [savedId, setSavedId] = useState((initialHand && initialHand.savedId) || null);
   const [favorited, setFavorited] = useState(!!(initialHand && initialHand.favorited));
   const savingFav = useRef(false);
-  const [toast, setToast] = useState(null);
+  const [toast, flashToast] = useFlash(2600);
   const [showShare, setShowShare] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
 
@@ -922,7 +923,7 @@ export function ReplayerView({ initialHand, onExit, onSaveToHistory, onSetFavori
     if (favorited) {
       if (savedId && onSetFavorite) onSetFavorite(savedId, false);
       setFavorited(false);
-      setToast('Removed from favorites');
+      flashToast('Removed from favorites');
     } else {
       if (savedId && onSetFavorite) {
         onSetFavorite(savedId, true);
@@ -937,9 +938,8 @@ export function ReplayerView({ initialHand, onExit, onSaveToHistory, onSetFavori
         }
       }
       setFavorited(true);
-      setToast('Added to favorites');
+      flashToast('Added to favorites');
     }
-    setTimeout(() => setToast(null), 2600);
   }
 
   function openShare() {
