@@ -188,8 +188,9 @@ function convertHand(h, heroId) {
     valid = false;
   }
 
-  // summary for the picker list (dollars)
+  // summary for the picker list (dollars); the hero's seat index rides on the replay for stats
   const heroSeat = players.find((p) => p.id === heroId);
+  const heroIdx = heroSeat ? physToIdx.get(heroSeat.seat) : null;
   const heroCards = heroSeat ? cardsBySeat.get(heroSeat.seat) || null : null;
   const names = [];
   if (heroSeat) names.push(heroSeat.name);
@@ -209,7 +210,7 @@ function convertHand(h, heroId) {
       potLabel: winTotal ? `${money(winTotal)} pot` : null,
       runTwice: !!board2,
     },
-    replay: { setup, actions, board, board2, won: wonBySeat, runResults },
+    replay: { setup, actions, board, board2, won: wonBySeat, runResults, hero: heroIdx == null ? null : heroIdx },
   };
 }
 

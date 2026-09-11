@@ -56,6 +56,8 @@ frontend/
     ├── library.js          saved ranges + saved solves client
     ├── LibraryContext.jsx  account library state (ranges, solves, caps)
     ├── SolverSaved.jsx     saved-solves panel + save control
+    ├── sessionStats.js     hero stats from imported replays (per-hand + aggregate)
+    ├── StatsView.jsx       Session stats page (Pro)
     ├── Cards.jsx           card chips and glyphs
     ├── Pickers.jsx         CardPicker (52-card grid) + RangePicker (13x13)
     ├── Seat.jsx            PlayerSeat + range thumbnail

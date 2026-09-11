@@ -233,7 +233,7 @@ export function HistoryDrawer({
       <aside className="drawer" role="dialog" aria-label="Hand history">
         <div className="drawer-head">
           <div>
-            <div className="drawer-title">Hand History</div>
+            <div className="drawer-title">Hand history</div>
             <div className="drawer-sub">
               {user
                 ? <>Signed in as <span style={{ color: 'var(--text)' }}>{user.name || user.email}</span> · {history.length} hand{history.length === 1 ? '' : 's'}</>
@@ -241,7 +241,7 @@ export function HistoryDrawer({
             </div>
             {user && (
               <div className="drawer-sub" style={{ marginTop: 2, fontSize: 11, opacity: 0.7 }}>
-                Showing your latest {cap || 500} hands (favorites kept first)
+                Keeps your latest {(cap || 500).toLocaleString('en-US')} hands, favorites first
               </div>
             )}
           </div>
