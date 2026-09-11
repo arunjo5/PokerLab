@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { SuitGlyph, SUIT_RED } from './Cards.jsx';
+import { useFlash } from './hooks.js';
 
 function relTime(d) {
   const diff = (Date.now() - d.getTime()) / 1000;
@@ -119,7 +120,7 @@ function HistoryRow({ item, onLoad, onToggleFavorite, onDelete }) {
  */
 // one short link row
 function LinkRow({ link, url, onOpen, onDelete, onRename }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, flashCopied] = useFlash(1500, false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(link.name || '');
   const doneRef = useRef(false);
@@ -127,8 +128,7 @@ function LinkRow({ link, url, onOpen, onDelete, onRename }) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      flashCopied(true);
     } catch { /* clipboard blocked; the url is visible in the row */ }
   }
 
@@ -233,7 +233,7 @@ export function HistoryDrawer({
       <aside className="drawer" role="dialog" aria-label="Hand history">
         <div className="drawer-head">
           <div>
-            <div className="drawer-title">Hand History</div>
+            <div className="drawer-title">Hand history</div>
             <div className="drawer-sub">
               {user
                 ? <>Signed in as <span style={{ color: 'var(--text)' }}>{user.name || user.email}</span> · {history.length} hand{history.length === 1 ? '' : 's'}</>
@@ -241,7 +241,7 @@ export function HistoryDrawer({
             </div>
             {user && (
               <div className="drawer-sub" style={{ marginTop: 2, fontSize: 11, opacity: 0.7 }}>
-                Showing your latest {cap || 500} hands (favorites kept first)
+                Keeps your latest {(cap || 500).toLocaleString('en-US')} hands, favorites first
               </div>
             )}
           </div>

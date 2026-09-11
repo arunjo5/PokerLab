@@ -65,6 +65,7 @@ src/
 │   ├── api/share/                Pro short links: create + list, resolve/rename/delete one
 │   ├── api/ranges/               saved ranges (per-plan cap)
 │   ├── api/solves/               saved solver spots (per-plan cap)
+│   ├── api/stats/                session stats: hand records + stats backfill (Pro)
 │   ├── layout.tsx · page.tsx · providers.tsx · theme.ts
 │   └── globals.css
 ├── components/                   Header, auth (SignInButton, UserMenu), ColorModeToggle
@@ -78,7 +79,8 @@ src/
 │   ├── billing.ts                subscription → user sync used by the webhook
 │   ├── shareLinks.ts             short-link codes, payload validation
 │   ├── library.ts                range-key and solver-spot validation for saved items
-│   └── gate.ts                   csrf + session + rate-limit gate for mutating routes
+│   ├── gate.ts                   csrf + session + rate-limit gate for mutating routes
+│   └── stats.ts                  Pro gate + per-hand stats validation
 └── types/next-auth.d.ts
 ```
 
@@ -104,6 +106,8 @@ src/
 - `PATCH /api/ranges/[id]` · `DELETE /api/ranges/[id]` — rename or replace keys / delete
 - `GET /api/solves` · `POST /api/solves` — list / save a solver spot (`{ name, config, summary }`)
 - `PATCH /api/solves/[id]` · `DELETE /api/solves/[id]` — rename / delete
+- `GET /api/stats/hands` — imported hands with their stored per-hand stats (Pro; full replay for rows not yet analysed)
+- `POST /api/stats/backfill` — store client-computed stats on older imported hands (Pro)
 
 ## License
 

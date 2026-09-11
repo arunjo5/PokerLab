@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { splitShareUrl } from './shareLinks.js';
+import { useFlash } from './hooks.js';
 
 async function copyText(text, inputEl) {
   if (navigator.clipboard?.writeText) {
@@ -16,11 +17,11 @@ async function copyText(text, inputEl) {
  * `short` (optional): { pro, signedIn, create(kind, payload), onUpgrade } adds the Pro section.
  */
 export function ShareModal({ open, onClose, url, short = null }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, flashCopied, setCopied] = useFlash(1800, false);
   const [shortUrl, setShortUrl] = useState('');
   const [shortBusy, setShortBusy] = useState(false);
   const [shortError, setShortError] = useState(null);
-  const [copiedShort, setCopiedShort] = useState(false);
+  const [copiedShort, flashCopiedShort, setCopiedShort] = useFlash(1800, false);
   const inputRef = useRef(null);
   const shortRef = useRef(null);
 
@@ -32,15 +33,14 @@ export function ShareModal({ open, onClose, url, short = null }) {
     setShortError(null);
     setCopiedShort(false);
     setTimeout(() => inputRef.current?.select(), 60);
-  }, [open, url]);
+  }, [open, url, setCopied, setCopiedShort]);
 
   if (!open) return null;
 
   async function copy() {
     try {
       await copyText(url, inputRef.current);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      flashCopied(true);
     } catch {
       // ignore — user can copy manually from the field
     }
@@ -49,8 +49,7 @@ export function ShareModal({ open, onClose, url, short = null }) {
   async function copyShort() {
     try {
       await copyText(shortUrl, shortRef.current);
-      setCopiedShort(true);
-      setTimeout(() => setCopiedShort(false), 1800);
+      flashCopiedShort(true);
     } catch { /* same */ }
   }
 

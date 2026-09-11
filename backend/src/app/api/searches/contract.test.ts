@@ -73,7 +73,7 @@ const saveReplayBody = (hand: ReturnType<typeof replayHand>, blindsLabel: string
 
 // App.jsx onImportConfirm body (~line 302)
 const importBody = (h: { number: number; replay: ReturnType<typeof replayHand> }) => ({
-  name: `PokerNow #${h.number}`,
+  name: `Hand #${h.number}`,
   players: playersForRow(h.replay),
   board: h.replay.board || [],
   odds: {},
@@ -150,7 +150,7 @@ describe('FE contract: onImportConfirm payload', () => {
     const res = await POST(req(importBody({ number: 12, replay: hand })) as never)
     expect(res.status).toBe(200)
     const data = createData()
-    expect(data.name).toBe('PokerNow #12')
+    expect(data.name).toBe('Hand #12')
     expect(data.isReplay).toBe(true)
     expect(data.favorite).toBe(false)
     expect(data.replay).toEqual(hand)

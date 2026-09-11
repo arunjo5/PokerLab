@@ -4,15 +4,18 @@ import { PlayingCard, EmptyCardSlot, SuitGlyph, SUIT_GLYPH, SUIT_RED, BoardStrip
 import { CardPicker, RangePicker, SUIT_ORDER, VALUE_ORDER } from './Pickers.jsx';
 import { PlayerSeat } from './Seat.jsx';
 import { useAuth } from './AuthContext.jsx';
+import { useFlash } from './hooks.js';
 import { HistoryDrawer } from './HistoryDrawer.jsx';
 import { ShareModal } from './ShareModal.jsx';
 import { UploadModal } from './UploadModal.jsx';
 import { ReplayerView, readReplayFromUrl } from './Replayer.jsx';
 import { decodeReplay } from './replayShare.js';
 import { readShareCodeFromUrl, shortLinkUrl, createShareLink, fetchShareLink, listShareLinks, deleteShareLink, renameShareLink } from './shareLinks.js';
+import { analyzeHand, sessionLabel } from './sessionStats.js';
 import { SolverView } from './SolverView.jsx';
 import { PlansView } from './PlansView.jsx';
 import { UpgradePrompt } from './UpgradePrompt.jsx';
+import { StatsView } from './StatsView.jsx';
 import {
   encodeScenario,
   decodeScenario,
@@ -129,9 +132,9 @@ export default function App() {
   const [replayHand, setReplayHand] = useState(null);
   const [showShare, setShowShare] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
-  const [sharedToast, setSharedToast] = useState(false);
+  const [sharedToast, flashShared] = useFlash(3600, false);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [importToast, setImportToast] = useState(null);
+  const [importToast, flashImport, setImportToast] = useFlash(3200);
 
   // ── Billing: plan gate, upgrade prompt, return from checkout ──
   // pro entry points stay hidden in production until stripe is configured
@@ -140,15 +143,10 @@ export default function App() {
   const [limitPrompt, setLimitPrompt] = useState(false);
   const [upgradeBusy, setUpgradeBusy] = useState(false);
   const limitShownRef = useRef(false);
-  const [noticeToast, setNoticeToast] = useState(null);
+  const [noticeToast, flashNotice, setNoticeToast] = useFlash(3600);
   const [activating, setActivating] = useState(() => {
     try { return new URLSearchParams(window.location.search).get('billing') === 'success'; } catch { return false; }
   });
-
-  function flashNotice(msg) {
-    setNoticeToast(msg);
-    setTimeout(() => setNoticeToast(null), 3600);
-  }
 
   // the save response says when a free account is full; prompt once per session
   function noteLimit(data) {
@@ -188,6 +186,7 @@ export default function App() {
     if (!authLoading && !user) { setActivating(false); return; }
     if (!user) return;
     let cancelled = false;
+    let timer;
     let tries = 0;
     setNoticeToast('Activating Pro…');
     const tick = async () => {
@@ -195,10 +194,10 @@ export default function App() {
       if (cancelled) return;
       if (p.plan === 'pro') { setActivating(false); flashNotice('You’re on Pro'); return; }
       if (++tries >= 12) { setActivating(false); flashNotice('Payment received. Pro switches on in a moment.'); return; }
-      setTimeout(tick, 1500);
+      timer = setTimeout(tick, 1500);
     };
     tick();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [activating, authLoading, user, refreshPlan]);
 
   // load a shared scenario; mark it saved so only edits persist
@@ -214,8 +213,7 @@ export default function App() {
     });
     setView('calc');
     setShowHistory(false);
-    setSharedToast(true);
-    setTimeout(() => setSharedToast(false), 3600);
+    flashShared(true);
   }
 
   // resolve a /s/<code> link and load it
@@ -363,6 +361,16 @@ export default function App() {
   function openLink(code) {
     setShowHistory(false);
     loadShareCode(code);
+  }
+
+  // a replay by row id (the stats page's biggest-pot lists)
+  async function openSavedHand(id) {
+    const res = await safeFetchJson(`/api/searches/${id}`);
+    const replay = res && res.search && res.search.replay;
+    if (!replay) { flashNotice('Could not load that hand'); return; }
+    commitToHistory();
+    setReplayHand({ ...replay, savedId: id, favorited: !!res.search.favorite });
+    setView('replayer');
   }
 
   // for both share modals; kind/payload come from the long url
@@ -525,28 +533,31 @@ export default function App() {
   }
 
   // save each imported hand as a favorited replay, then open history
-  async function onImportConfirm(chosen) {
+  async function onImportConfirm(chosen, meta) {
     setUploadOpen(false);
     setImportToast(`Importing ${chosen.length} hand${chosen.length === 1 ? '' : 's'}…`);
     let saved = 0;
     let lastSave = null;
+    // one import = one session; each hand carries its own stats so the stats page stays cheap
+    const session = { id: 's' + Date.now().toString(36), label: sessionLabel(meta && meta.fileName), at: new Date().toISOString() };
     for (const h of chosen) {
       const seats = (h.replay && h.replay.setup && h.replay.setup.seats) || [];
       const playersForRow = seats.map(s =>
         s.cards && s.cards.length === 2 ? { kind: 'hand', hand: s.cards } : null
       );
+      const replay = { ...h.replay, session, stats: analyzeHand(h.replay) };
       try {
         const r = await fetch('/api/searches', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: `PokerNow #${h.number}`,
+            name: `Hand #${h.number}`,
             players: playersForRow,
             board: (h.replay && h.replay.board) || [],
             odds: {},
             isReplay: true,
-            replay: h.replay,
+            replay,
             favorite: false,
           }),
         });
@@ -560,8 +571,7 @@ export default function App() {
     refreshPlan();
     noteLimit(lastSave);
     setShowHistory(true);
-    setImportToast(`${saved} hand${saved === 1 ? '' : 's'} added to history`);
-    setTimeout(() => setImportToast(null), 3200);
+    flashImport(`${saved} hand${saved === 1 ? '' : 's'} added to history`);
   }
 
   useEffect(() => {
@@ -894,6 +904,7 @@ export default function App() {
       onOpenShare={ctx === 'calc' ? openShare : undefined}
       onOpenUpload={ctx !== 'solver' ? openUpload : undefined}
       onUpgrade={billingOn && ctx !== 'solver' ? () => setView('plans') : undefined}
+      onOpenStats={ctx !== 'solver' ? () => { setShowHistory(false); setView('stats'); } : undefined}
       onManage={billingOn && ctx !== 'solver' ? async () => { const res = await openPortal(); if (res && res.error) flashNotice(res.error); } : undefined}
     />
   ) : signInEl;
@@ -966,6 +977,24 @@ export default function App() {
           themeToggle={themeToggleEl}
           historyDrawer={historyDrawerEl}
           shareShort={shareShort}
+        />
+        {sharedOverlays}
+      </>
+    );
+  }
+
+  if (view === 'stats') {
+    return (
+      <>
+        <StatsView
+          onExit={() => setView('calc')}
+          onNavigate={(v) => { if (v === 'replayer') openReplayer(); else setView(v); }}
+          themeToggle={themeToggleEl}
+          userMenu={accountMenuFor('stats')}
+          user={user}
+          plan={plan}
+          onUpgrade={() => setView('plans')}
+          onOpenHand={openSavedHand}
         />
         {sharedOverlays}
       </>
@@ -1200,7 +1229,7 @@ function SaveModal({ open, busy, error, onClose, onSave }) {
 
 // ─── UserChip — avatar dropdown in the topbar ───
 // omitted handlers hide their menu items
-function UserChip({ user, plan, onSignOut, onOpenHistory, onOpenShare, onOpenUpload, onUpgrade, onManage }) {
+function UserChip({ user, plan, onSignOut, onOpenHistory, onOpenShare, onOpenUpload, onOpenStats, onUpgrade, onManage }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -1251,6 +1280,14 @@ function UserChip({ user, plan, onSignOut, onOpenHistory, onOpenShare, onOpenUpl
                 <path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" />
               </svg>
               Hand history
+            </button>
+          )}
+          {onOpenStats && (
+            <button className="user-menu-item" onClick={() => { setOpen(false); onOpenStats(); }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18" /><rect x="7" y="12" width="3" height="6" /><rect x="12" y="8" width="3" height="10" /><rect x="17" y="5" width="3" height="13" />
+              </svg>
+              Session stats
             </button>
           )}
           {onOpenShare && (

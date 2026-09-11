@@ -466,7 +466,7 @@ describe('account menu plan states', () => {
     expect(within(menu).getByText('PRO')).toHaveClass('pro-badge');
     expect(within(menu).getByText('Manage subscription')).toBeInTheDocument();
     expect(within(menu).queryByText('Upgrade to Pro')).toBeNull();
-    expect(menu.querySelectorAll('.user-menu-item')).toHaveLength(5);
+    expect(menu.querySelectorAll('.user-menu-item')).toHaveLength(6);
   });
 
   it('a monthly pro account reads monthly', async () => {

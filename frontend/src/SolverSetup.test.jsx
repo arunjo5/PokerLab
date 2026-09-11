@@ -192,7 +192,7 @@ describe('SidePickerModal', () => {
 
   it('unset SideRow offers separate Hand and Range buttons opening the right mode', () => {
     render(<Harness />);
-    expect(sideRow(0).textContent).toContain('Not set — choose a hand or range');
+    expect(sideRow(0).textContent).toContain('Choose a hand or range');
     fireEvent.click(within(sideRow(0)).getByRole('button', { name: 'Hand' }));
     expect(document.querySelector('.picker-sub').textContent).toBe('0 / 2 cards selected');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
