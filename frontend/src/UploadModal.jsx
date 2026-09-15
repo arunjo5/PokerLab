@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { CardChip } from './Cards.jsx';
 import { parsePokerNowLog, convertHandsFor, convertAllHands } from './pokernowImport.js';
+import { parsePokerNowCsv, isPokerNowCsv } from './pokernowCsv.js';
 
 const MAX_HANDS = 50;
 const MAX_BYTES = 10 * 1024 * 1024; // generous — real logs are well under 1 MB
@@ -65,13 +66,13 @@ function UploadModal({ open, onClose, onConfirm }) {
     setSelected([]);
     setEntryError(null);
     const name = file.name || 'log';
-    const isJson =
-      name.toLowerCase().endsWith('.json') || file.type === 'application/json';
-    if (!isJson) {
+    const lower = name.toLowerCase();
+    const known = lower.endsWith('.json') || lower.endsWith('.csv') || file.type === 'application/json' || file.type === 'text/csv';
+    if (!known) {
       const ext = name.includes('.') ? name.split('.').pop().toUpperCase() : 'unknown';
       setParsed(null);
       setFileName(name);
-      setFileError(`That's a .${ext} file — PokerNow exports are .json. Drop the .json log instead.`);
+      setFileError(`That's a .${ext} file — PokerNow logs are .json or .csv. Drop one of those instead.`);
       return;
     }
     if (file.size > MAX_BYTES) {
@@ -83,14 +84,18 @@ function UploadModal({ open, onClose, onConfirm }) {
     const reader = new FileReader();
     reader.onload = () => {
       let result;
+      const text = String(reader.result);
       try {
-        result = parsePokerNowLog(String(reader.result));
+        // the .csv download and the .json export carry the same hands; a .csv
+        // that fails the sniff still gets the csv reader's error, not json's
+        const csv = isPokerNowCsv(text) || lower.endsWith('.csv') || file.type === 'text/csv';
+        result = csv ? parsePokerNowCsv(text) : parsePokerNowLog(text);
       } catch (e) {
         setParsed(null);
         setFileName(name);
         setFileError(
           e && e.message === 'NOT_JSON'
-            ? "We couldn't read that file as JSON — make sure it's an unedited PokerNow export."
+            ? "We couldn't read that file — make sure it's an unedited PokerNow export."
             : "This doesn't look like a PokerNow log. Export the hand log from PokerNow and try again."
         );
         return;
@@ -453,12 +458,12 @@ function DropZone({ isDragging, hasError, fileInputRef, onPick, setIsDragging, o
         {isDragging ? 'Drop to upload' : <>Drag a log here or <span className="accent">browse</span></>}
       </div>
       <div className="upload-drop-sub">
-        <span className="mono">.json</span> only
+        <span className="mono">.json</span> or <span className="mono">.csv</span>
       </div>
       <input
         ref={fileInputRef}
         type="file"
-        accept=".json,application/json"
+        accept=".json,.csv,application/json,text/csv"
         style={{ display: 'none' }}
         onChange={(e) => { onPick(e.target.files?.[0]); e.target.value = ''; }}
       />

@@ -198,7 +198,7 @@ export default function App() {
     };
     tick();
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [activating, authLoading, user, refreshPlan]);
+  }, [activating, authLoading, user, refreshPlan, flashNotice, setNoticeToast]);
 
   // load a shared scenario; mark it saved so only edits persist
   function applySharedScenario(sc) {
@@ -1334,7 +1334,8 @@ function toHistoryItem(s) {
     const rep = s.replay;
     const seats = (rep.setup && rep.setup.seats) || [];
     const repBoard = Array.isArray(rep.board) ? rep.board : [];
-    const heroSeat = seats.findIndex(x => x && x.cards && x.cards.length === 2);
+    // imports say who the hero is; older rows fall back to the first seat holding cards
+    const heroSeat = rep.hero != null && seats[rep.hero] && seats[rep.hero].cards ? rep.hero : seats.findIndex(x => x && x.cards && x.cards.length === 2);
     const nameOf = (i) => (seats[i] && (seats[i].name || seats[i].pos)) || `Player ${i + 1}`;
     return {
       id: s.id,

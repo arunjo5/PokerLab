@@ -7,7 +7,7 @@
   <img src="pokerlab-solver.png" width="49%" alt="PokerLab heads-up river solver" />
 </p>
 
-PokerLab lets you deal hole cards, assign ranges, and set the board, then computes each player’s equity using a Monte Carlo simulation. It also includes a side panel for calculating pot odds and MDF in the current spot. A heads-up river solver finds the GTO strategy for a single river decision between two ranges using CFR. Pro accounts can also lock the villain to river tendencies observed in their imported hands (bet, fold, and raise rates, shrunk toward GTO on small samples) and solve their best response, with the gain over GTO play and the cost if the villain adapts. You can import PokerNow logs into the replayer, share exact board states or replays, and review past hands from your profile page.
+PokerLab lets you deal hole cards, assign ranges, and set the board, then computes each player’s equity using a Monte Carlo simulation. It also includes a side panel for calculating pot odds and MDF in the current spot. A heads-up river solver finds the GTO strategy for a single river decision between two ranges using CFR. Pro accounts can also lock the villain to river tendencies observed in their imported hands (bet, fold, and raise rates, shrunk toward GTO on small samples) and solve their best response, with the gain over GTO play and the cost if the villain adapts. You can import PokerNow logs (the .json export or the .csv download) into the replayer, share exact board states or replays, and review past hands from your profile page.
 
 ## Architecture
 

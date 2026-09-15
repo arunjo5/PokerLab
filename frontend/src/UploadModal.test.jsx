@@ -61,7 +61,7 @@ describe('UploadModal file intake (drop phase)', () => {
   it('rejects a non-.json extension and stays on the dropzone', () => {
     const { container } = renderModal();
     dropFile(container, 'whatever', 'log.txt', 'text/plain');
-    expect(screen.getByText(/\.TXT file — PokerNow exports are \.json/)).toBeInTheDocument();
+    expect(screen.getByText(/\.TXT file — PokerNow logs are \.json or \.csv/)).toBeInTheDocument();
     expect(screen.getByText(/Drag a log here/)).toBeInTheDocument();
   });
 
@@ -79,10 +79,10 @@ describe('UploadModal file intake (drop phase)', () => {
   it('distinguishes unreadable JSON from JSON that is not a PokerNow log', async () => {
     const { container } = renderModal();
     dropFile(container, 'not json');
-    await screen.findByText(/couldn't read that file as JSON/);
+    await screen.findByText(/couldn't read that file/);
     dropFile(container, '{"foo":1}');
     await screen.findByText(/doesn't look like a PokerNow log/);
-    expect(screen.queryByText(/couldn't read that file as JSON/)).toBeNull();
+    expect(screen.queryByText(/couldn't read that file/)).toBeNull();
   });
 
   it('accepts a file with no .json name when the MIME type is JSON', async () => {
