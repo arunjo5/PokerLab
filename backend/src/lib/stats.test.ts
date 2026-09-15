@@ -6,7 +6,7 @@ vi.mock('@/lib/plan', async (importOriginal) => ({
   getPlan: vi.fn(),
 }))
 
-import { requirePro, validStats } from '@/lib/stats'
+import { requirePro, validStats, STATS_VERSION } from '@/lib/stats'
 import { getPlan, PLAN_LIMITS } from '@/lib/plan'
 
 const asMock = (f: unknown) => f as ReturnType<typeof vi.fn>
@@ -123,8 +123,14 @@ describe('validStats numbers', () => {
 
   it('accepts zero, negatives and fractions', () => {
     for (const k of NUM) {
+      if (k === 'v') continue
       for (const v of [0, -0, -12.5, 0.25, 1e6]) expect(validStats(bend(k, v))).toBe(true)
     }
+  })
+
+  it('takes v as a whole number from 1 up to the current version only', () => {
+    for (const v of [1, STATS_VERSION]) expect(validStats(bend('v', v))).toBe(true)
+    for (const v of [0, -1, 1.5, STATS_VERSION + 1, 1e9]) expect(validStats(bend('v', v))).toBe(false)
   })
 })
 
@@ -170,23 +176,101 @@ describe('validStats pos', () => {
 })
 
 describe('validStats size', () => {
-  it('accepts a record right on the 600 character cap', () => {
-    const o = sized(600)
-    expect(JSON.stringify(o).length).toBe(600)
+  it('accepts a record right on the 1500 character cap', () => {
+    const o = sized(1500)
+    expect(JSON.stringify(o).length).toBe(1500)
     expect(validStats(o)).toBe(true)
   })
 
   it('rejects one character past it', () => {
-    const o = sized(601)
-    expect(JSON.stringify(o).length).toBe(601)
+    const o = sized(1501)
+    expect(JSON.stringify(o).length).toBe(1501)
     expect(validStats(o)).toBe(false)
   })
 
   it('measures the whole record, so a fat nested value trips it', () => {
-    expect(validStats({ ...STATS, notes: { text: 'x'.repeat(600) } })).toBe(false)
+    expect(validStats({ ...STATS, notes: { text: 'x'.repeat(1500) } })).toBe(false)
   })
 
   it('sizes before it types, so an oversize record fails with every field right', () => {
-    expect(validStats(sized(900))).toBe(false)
+    expect(validStats(sized(1800))).toBe(false)
+  })
+})
+
+describe('STATS_VERSION', () => {
+  it('is exported as 2', () => {
+    expect(STATS_VERSION).toBe(2)
+  })
+})
+
+describe('validStats opp', () => {
+  const ROW = [10, 6, 3, 4, 2, 1, 0]
+  const opp = (v: unknown) => validStats(bend('opp', v))
+  const seats = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`p${i + 1}`, ROW]))
+
+  it('is optional', () => {
+    expect(validStats(without('opp'))).toBe(true)
+    expect(opp(undefined)).toBe(true)
+    expect(opp(null)).toBe(true)
+  })
+
+  it('accepts one through twelve opponents', () => {
+    for (const n of [0, 1, 2, 6, 11, 12]) expect(opp(seats(n))).toBe(true)
+  })
+
+  it('accepts a row of zeros', () => {
+    expect(opp({ p1: [0, 0, 0, 0, 0, 0, 0] })).toBe(true)
+  })
+
+  it('rejects a thirteenth opponent', () => {
+    expect(opp(seats(13))).toBe(false)
+  })
+
+  it('rejects an array', () => {
+    expect(opp([])).toBe(false)
+    expect(opp([ROW])).toBe(false)
+    expect(opp(Object.assign([], seats(2)))).toBe(false)
+  })
+
+  it('rejects a non-object', () => {
+    for (const v of [0, 42, '', 'p1', true, false]) expect(opp(v)).toBe(false)
+  })
+
+  it('takes a forty character name but not forty-one', () => {
+    expect(opp({ ['x'.repeat(40)]: ROW })).toBe(true)
+    expect(opp({ ['x'.repeat(41)]: ROW })).toBe(false)
+  })
+
+  it('rejects an empty name', () => {
+    expect(opp({ '': ROW })).toBe(false)
+  })
+
+  it('needs exactly seven counts', () => {
+    expect(opp({ p1: ROW.slice(0, 6) })).toBe(false)
+    expect(opp({ p1: [...ROW, 1] })).toBe(false)
+    expect(opp({ p1: [] })).toBe(false)
+  })
+
+  it('rejects a row that is not an array', () => {
+    for (const v of [null, undefined, 7, 'x', true, { 0: 1, length: 7 }]) expect(opp({ p1: v })).toBe(false)
+  })
+
+  it('rejects a negative, fractional or non-finite count', () => {
+    for (const v of [-1, -0.5, 0.25, NaN, Infinity, -Infinity]) {
+      expect(opp({ p1: [v, 0, 0, 0, 0, 0, 0] })).toBe(false)
+    }
+  })
+
+  it('rejects a count that is not a number', () => {
+    for (const v of ['1', '', null, undefined, true, [], {}]) expect(opp({ p1: [0, 0, 0, v, 0, 0, 0] })).toBe(false)
+  })
+
+  it('caps a count at a million', () => {
+    expect(opp({ p1: [1_000_000, 0, 0, 0, 0, 0, 0] })).toBe(true)
+    expect(opp({ p1: [1_000_001, 0, 0, 0, 0, 0, 0] })).toBe(false)
+  })
+
+  it('rejects the record when one seat of many is bad', () => {
+    expect(opp({ ...seats(5), bad: [1, 2, 3] })).toBe(false)
   })
 })

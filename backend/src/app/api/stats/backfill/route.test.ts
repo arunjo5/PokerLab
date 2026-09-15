@@ -114,9 +114,9 @@ describe('stats backfill gates', () => {
     expect((await POST(req({}) as never)).status).toBe(403)
   })
 
-  it('413 past the 96KB body cap', async () => {
-    expect((await POST(req({ items: [item('h1')] }, { 'content-length': '98305' }) as never)).status).toBe(413)
-    expect((await POST(req({ items: [item('h1')], pad: 'x'.repeat(98304) }) as never)).status).toBe(413)
+  it('413 past the 192KB body cap', async () => {
+    expect((await POST(req({ items: [item('h1')] }, { 'content-length': '196609' }) as never)).status).toBe(413)
+    expect((await POST(req({ items: [item('h1')], pad: 'x'.repeat(196608) }) as never)).status).toBe(413)
     expect(transaction).not.toHaveBeenCalled()
   })
 
@@ -170,7 +170,7 @@ describe('stats backfill items', () => {
   })
 
   it('400 on stats that fail validStats', async () => {
-    const oversize = { ...STATS, f: 'x'.repeat(600) }
+    const oversize = { ...STATS, f: 'x'.repeat(1500) }
     const stats = [
       undefined,
       null,

@@ -24,7 +24,7 @@ const SELECT = { id: true, name: true, createdAt: true, replay: true }
 const AT = new Date('2026-01-15T12:00:00.000Z')
 
 const SESSION = { site: 'PokerNow', started: '2026-01-15', hands: 42 }
-const STATS = { hero: 2, players: 6, bb: 100, agg: 3, calls: 1, net: -450, pot: 1200, v: 1 }
+const STATS = { hero: 2, players: 6, bb: 100, agg: 3, calls: 1, net: -450, pot: 1200, v: 2 }
 
 const row = (id: string, replay: unknown) => ({ id, name: `hand ${id}`, createdAt: AT, replay })
 const analysed = (id: string) => row(id, { session: SESSION, stats: STATS })
@@ -230,6 +230,69 @@ describe('stats hands rows', () => {
     expect(list[0]).not.toHaveProperty('replay')
     expect(list[1].replay).toEqual(bare)
     expect(list[2].replay).toBeNull()
+  })
+})
+
+describe('stats hands versioning', () => {
+  // a stored replay whose stats carry the given version
+  const at = (v: unknown) => ({ session: SESSION, hands: [{ a: 1 }], stats: { ...STATS, v } })
+
+  it('holds the replay back when the stats are current', async () => {
+    findMany.mockResolvedValue([row('h1', at(2))])
+    const h = await first()
+    expect(h).not.toHaveProperty('replay')
+    expect(h.stats).toEqual({ ...STATS, v: 2 })
+  })
+
+  it('holds the replay back when the stats are newer than this server', async () => {
+    findMany.mockResolvedValue([row('h1', at(3))])
+    expect(await first()).not.toHaveProperty('replay')
+  })
+
+  it('sends the stored stats and the whole replay when the version is behind', async () => {
+    const replay = at(1)
+    findMany.mockResolvedValue([row('h1', replay)])
+    const h = await first()
+    expect(h.stats).toEqual({ ...STATS, v: 1 })
+    expect(h.replay).toEqual(replay)
+  })
+
+  it('sends the replay when the stats carry no version', async () => {
+    const { v: _v, ...noVersion } = STATS
+    const replay = { session: SESSION, hands: [{ a: 1 }], stats: noVersion }
+    findMany.mockResolvedValue([row('h1', replay)])
+    const h = await first()
+    expect(h.stats).toEqual(noVersion)
+    expect(h.replay).toEqual(replay)
+  })
+
+  it('sends the replay when the version is not a number', async () => {
+    for (const v of ['2', '', null, true, [2], { n: 2 }]) {
+      const replay = at(v)
+      findMany.mockResolvedValue([row('h1', replay)])
+      const h = await first()
+      expect(h.stats).toEqual({ ...STATS, v })
+      expect(h.replay).toEqual(replay)
+    }
+  })
+
+  it('still returns the session on a stale row', async () => {
+    findMany.mockResolvedValue([row('h1', at(1))])
+    const h = await first()
+    expect(h.session).toEqual(SESSION)
+    expect(h.replay.session).toEqual(SESSION)
+  })
+
+  it('maps a mixed page row by row', async () => {
+    const stale = at(1)
+    const bare = { session: SESSION, hands: [] }
+    findMany.mockResolvedValue([analysed('h1'), row('h2', stale), row('h3', bare), row('h4', at(3))])
+    const list = await hands(await GET(req()))
+    expect(list[0]).not.toHaveProperty('replay')
+    expect(list[1].replay).toEqual(stale)
+    expect(list[2].replay).toEqual(bare)
+    expect(list[2].stats).toBeNull()
+    expect(list[3]).not.toHaveProperty('replay')
   })
 })
 

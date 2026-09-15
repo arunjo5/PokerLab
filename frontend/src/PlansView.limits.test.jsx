@@ -82,7 +82,7 @@ describe('freeFeatures / proFeatures', () => {
     expect(freeFeatures()).toContain('3 saved ranges and 3 saved solves');
     expect(proFeatures()).toContain('Save up to 5,000 hands');
     expect(proFeatures()).toContain('200 saved ranges and 200 saved solves');
-    expect(proFeatures()).toContain('500 permanent short links');
+    expect(proFeatures()).toContain('500 permanent short share links');
     expect(freeFeatures()).toEqual(freeFeatures(DEFAULT_LIMITS));
   });
 
@@ -99,8 +99,9 @@ describe('freeFeatures / proFeatures', () => {
       'Everything in Free',
       'Save up to 12,345 hands',
       '42 saved ranges and 43 saved solves',
-      '900 permanent short links',
+      '900 permanent short share links',
       'Session stats from your PokerNow imports',
+      'Exploit solver against real opponent tendencies',
       'Support PokerLab’s development',
     ]);
   });
@@ -108,7 +109,7 @@ describe('freeFeatures / proFeatures', () => {
   it('groups thousands in the hand cap only', () => {
     const limits = { free: DEFAULT_LIMITS.free, pro: { saveCap: 20000, shareLinks: 1500, ranges: 2000, solves: 3000 } };
     expect(proFeatures(limits)).toContain('Save up to 20,000 hands');
-    expect(proFeatures(limits)).toContain('1500 permanent short links');
+    expect(proFeatures(limits)).toContain('1500 permanent short share links');
     expect(proFeatures(limits)).toContain('2000 saved ranges and 3000 saved solves');
   });
 
@@ -165,7 +166,7 @@ describe('plans page caps come from /api/billing/status', () => {
     expect(cardRows('Free plan')).toContain('9 saved ranges and 7 saved solves');
     expect(cardRows('Free plan')).toContain('Save up to 1,000 hands');
     expect(cardRows('Pro plan')).toContain('42 saved ranges and 43 saved solves');
-    expect(cardRows('Pro plan')).toContain('900 permanent short links');
+    expect(cardRows('Pro plan')).toContain('900 permanent short share links');
   });
 
   it('keeps the built-in caps when the status carries none', async () => {

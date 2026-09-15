@@ -2,7 +2,13 @@
 // (replay.stats) so the stats page only ever aggregates small objects.
 import { ReplayEngine } from './replayerEngine.js';
 
-export const STATS_VERSION = 1;
+export const STATS_VERSION = 2;
+
+// pseudo-observations an opponent's rate is shrunk toward the GTO rate with
+export const PRIOR_WEIGHT = 20;
+
+// per opponent, per hand: [hands, bet opportunities, bets, bets faced, folds, calls, raises]
+export const OPP = { hands: 0, betOpp: 1, bet: 2, faced: 3, fold: 4, call: 5, raise: 6 };
 
 // the one seat holding cards; showdown reveals make it ambiguous, so null then
 export function inferHeroSeat(replay) {
@@ -29,6 +35,65 @@ export function heroSeatByName(replay, name) {
   const seats = (replay && replay.setup && replay.setup.seats) || [];
   const i = seats.findIndex(s => s && s.name === name && s.cards && s.cards.length === 2);
   return i >= 0 ? i : null;
+}
+
+// what every other seat did with its first river decision: bet when it could,
+// and fold / call / raise when it faced a bet. later raises are not counted.
+export function riverActions(replay, hero) {
+  const out = {};
+  if (!replay) return out;
+  const seats = (replay.setup && replay.setup.seats) || [];
+  const rec = (i) => {
+    if (i === hero) return null;
+    const name = seats[i] && typeof seats[i].name === 'string' ? seats[i].name.trim().slice(0, 40) : '';
+    if (!name) return null;
+    return out[name] || (out[name] = [1, 0, 0, 0, 0, 0, 0]);
+  };
+  seats.forEach((_, i) => rec(i));
+  let live = false;
+  const aggressors = new Set(), faced = new Set();
+  for (const a of (Array.isArray(replay.actions) ? replay.actions : [])) {
+    if ((a.street || 0) !== 3) continue;
+    const r = rec(a.seat);
+    if (!live) {
+      if (r) { r[OPP.betOpp]++; if (a.type === 'bet') r[OPP.bet]++; }
+    } else if (r && !aggressors.has(a.seat) && !faced.has(a.seat)) {
+      faced.add(a.seat);
+      r[OPP.faced]++;
+      if (a.type === 'fold') r[OPP.fold]++;
+      else if (a.type === 'call') r[OPP.call]++;
+      else if (a.type === 'raise') r[OPP.raise]++;
+    }
+    if (a.type === 'bet' || a.type === 'raise') { live = true; aggressors.add(a.seat); }
+  }
+  return out;
+}
+
+// items: [{ stats }]; one row per opponent name, most hands first
+export function aggregateOpponents(items) {
+  const by = new Map();
+  for (const it of items) {
+    const opp = it && it.stats && it.stats.opp;
+    if (!opp || typeof opp !== 'object') continue;
+    for (const name of Object.keys(opp)) {
+      const row = opp[name];
+      if (!Array.isArray(row)) continue;
+      let acc = by.get(name);
+      if (!acc) { acc = { name, hands: 0, betOpp: 0, bet: 0, faced: 0, fold: 0, call: 0, raise: 0 }; by.set(name, acc); }
+      for (const k of Object.keys(OPP)) acc[k] += Number(row[OPP[k]]) || 0;
+    }
+  }
+  return [...by.values()].sort((a, b) => b.hands - a.hands || a.name.localeCompare(b.name));
+}
+
+// the solver's villain model: observed counts per river stat, null where there is no data
+export function opponentModel(o) {
+  if (!o) return null;
+  return {
+    bet: o.betOpp > 0 ? { hits: o.bet, opps: o.betOpp } : null,
+    fold: o.faced > 0 ? { hits: o.fold, opps: o.faced } : null,
+    raise: o.faced > 0 ? { hits: o.raise, opps: o.faced } : null,
+  };
 }
 
 // one hand from the hero's seat; null when there's no hero or the hand can't be replayed
@@ -80,6 +145,7 @@ export function analyzeHand(replay, heroSeat) {
     agg, calls,
     net,
     pot: last.pot || 0,
+    opp: riverActions(replay, hero),
   };
 }
 

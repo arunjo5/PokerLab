@@ -155,7 +155,7 @@ describe('an import tags every hand with one session and its own stats', () => {
     expect(new Date(sessions[0].at).toISOString()).toBe(sessions[0].at);
 
     for (const p of posts) {
-      expect(p.replay.stats).toMatchObject({ v: 1, hero: 0, pos: 'BTN', players: 2, bb: 100, cents: true, net: -50 });
+      expect(p.replay.stats).toMatchObject({ v: 2, hero: 0, pos: 'BTN', players: 2, bb: 100, cents: true, net: -50 });
       expect(p.replay.setup).toBeTruthy(); // the replay itself still rides along
     }
   });

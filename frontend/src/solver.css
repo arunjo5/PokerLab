@@ -500,3 +500,29 @@
 .sv-save-form { display: flex; gap: 6px; align-items: center; }
 .sv-save-form .range-save-input { width: 170px; }
 .sv-readout-actions { flex-wrap: wrap; }
+
+/* ── villain model (exploit mode) ── */
+.sv-villain-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sv-villain-side, .sv-villain-src { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sv-villain-lbl { font-size: 11px; color: var(--text-dim); }
+.sv-villain .share-pro-tease { margin-top: 2px; }
+.sv-tend-list { display: flex; flex-direction: column; gap: 9px; }
+.sv-tend-row { display: grid; grid-template-columns: minmax(0, 1fr) 150px 52px; align-items: center; gap: 12px; font-size: 12.5px; }
+.sv-tend-label { display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
+.sv-tend-obs { grid-column: 2 / 4; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text-soft); }
+.sv-tend-val { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text); }
+.sv-range { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; background: var(--border-2); outline: none; margin: 0; }
+.sv-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--gold); border: 2px solid var(--bg-elev); box-shadow: 0 0 0 1px var(--gold-dim); cursor: pointer; }
+.sv-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--gold); border: 2px solid var(--bg-elev); cursor: pointer; }
+.sv-range:focus-visible { box-shadow: 0 0 0 3px var(--gold-soft); }
+.sv-villain-note { font-size: 11px; color: var(--text-faint); line-height: 1.5; }
+.sv-tab-lock { display: inline-flex; margin-left: 5px; color: var(--gold); vertical-align: middle; }
+.sv-tab-lock svg { display: block; }
+.sv-model-line { font-size: 11.5px; color: var(--text-dim); margin-top: 4px; }
+.sv-model-line strong { color: var(--text); font-weight: 600; }
+.sv-stat-value.pos { color: #57b98c; }
+.sv-stat-value.neg { color: #d98a83; }
+.light .sv-stat-value.neg { color: #9a2922; }
+.sv-line-switch { margin-left: 4px; }
+.sv-saved-exploit { color: var(--gold); }
+.sv-villain-src .st-menu { left: 0; right: auto; }
