@@ -47,7 +47,8 @@ frontend/
     ├── SolverResults.jsx   strategy grid + exploitability / exploit readouts
     ├── solverBits.jsx      shared solver UI (range thumbnail, legend)
     ├── solver.css          solver styles
-    ├── pokernowImport.js   parse PokerNow exports into replayable hands
+    ├── pokernowImport.js   parse PokerNow JSON exports into replayable hands
+    ├── pokernowCsv.js      parse the PokerNow .csv text log into the same raw hands
     ├── scenario.js         scenario <-> URL state
     ├── shareCodec.js       compact share-link encoding (lz-string)
     ├── replayShare.js      share encoding for replays

@@ -1,6 +1,7 @@
 // Parse a PokerNow JSON export into hands the replayer can play:
 //   { heroId, hands: [{ number, summary, replay:{ setup, actions, board } }] }
 // Replay amounts stay in cents; the summary formats them as dollars.
+// pokernowCsv.js feeds the same raw hands from the text log.
 
 import { ReplayEngine } from './replayerEngine.js';
 import { cardToId, evaluate7 } from './pokerEngine.js';
@@ -69,6 +70,11 @@ function convertHand(h, heroId) {
     if (p.type === EV.SHOW && Array.isArray(p.cards) && p.cards[0] && p.cards[1] && !cardsBySeat.has(p.seat)) {
       cardsBySeat.set(p.seat, [toCard(p.cards[0]), toCard(p.cards[1])]);
     }
+  }
+  // the text log's "Your hand is" names no one; it belongs to whoever the user says they are
+  const heroP = players.find((p) => p.id === heroId);
+  if (heroP && !cardsBySeat.has(heroP.seat) && Array.isArray(h.yourHand) && h.yourHand.length === 2) {
+    cardsBySeat.set(heroP.seat, [toCard(h.yourHand[0]), toCard(h.yourHand[1])]);
   }
 
   const seats = order.map((physSeat, i) => {
@@ -215,7 +221,7 @@ function convertHand(h, heroId) {
 }
 
 // Distinct players + how many hands each was dealt into; names can change, so keep the most-used.
-function rosterFromHands(rawHands) {
+export function rosterFromHands(rawHands) {
   const byId = new Map();
   for (const h of rawHands) {
     if (h.gameType && h.gameType !== 'th') continue;
