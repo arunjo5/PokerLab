@@ -136,15 +136,45 @@ function Sparkline({ trace }) {
   return <svg width={w} height={h} className="sv-spark"><polyline points={pts} fill="none" stroke="var(--gold)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function ResultsView({ spot, board, oopSide, ipSide, oopKeys, ipKeys, result, onResolve, onBackToSetup, onSaveSolve = null, openPlans }) {
+// under a twentieth of a percent reads as zero: no sign, no tone
+const signed = (x, digits = 1) => { const v = Math.abs(x) < 0.05 ? 0 : x; return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(digits); };
+const toneOf = (x) => (x >= 0.05 ? 'pos' : x <= -0.05 ? 'neg' : '');
+
+// "folds 70% (GTO 55% · 14 of 20)" for one locked tendency
+function lockText(verb, lock) {
+  if (!lock) return `${verb} at GTO`;
+  const seen = lock.rate != null ? 'custom' : `${lock.hits} of ${lock.opps}`;
+  return `${verb} ${Math.round(lock.achieved * 100)}% (GTO ${Math.round(lock.eq * 100)}% · ${seen})`;
+}
+
+function LockGlyph() {
+  return (
+    <span className="sv-tab-lock" title="Locked to the villain model">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      </svg>
+    </span>
+  );
+}
+
+export function ResultsView({ spot, board, oopSide, ipSide, oopKeys, ipKeys, result, onResolve, onBackToSetup, onSaveSolve = null, openPlans, exploitName = null }) {
   const nodes = result.nodes;
   const meta = result.meta, trace = result.trace;
+  const ex = result.exploit || null;
   const [nodeId, setNodeId] = useState(nodes[0].id);
   const [layout, setLayout] = useState('strategy');
   const [selectedKey, setSelectedKey] = useState(null);
+  const [line, setLine] = useState('exploit'); // exploit | gto, when an exploit solve is shown
 
   const node = nodes.find((n) => n.id === nodeId) || nodes[0];
-  const solve = result.nodeSolves[node.id] || { byKey: {}, combos: [], count: 0 };
+  const solves = ex && line === 'exploit' ? ex.nodeSolves : result.nodeSolves;
+  const solve = solves[node.id] || { byKey: {}, combos: [], count: 0 };
+  // hero deltas against the equilibrium value, in % of pot
+  const pot = spot.pot || 0;
+  const pctPot = (x) => (pot > 0 ? x / pot * 100 : 0);
+  const gain = ex ? pctPot(ex.ev.exploit - ex.ev.gtoVsModel) : 0;
+  const vsGto = ex ? pctPot(ex.ev.exploitVsGto - ex.ev.eq) : 0;
+  const vsAdapt = ex ? pctPot(ex.ev.exploitVsBr - ex.ev.eq) : 0;
 
   const focusDefault = (node.actions.find((a) => a.kind === 'bet') || node.actions.find((a) => a.kind === 'call') || node.actions[0]).id;
   const [focusAction, setFocusAction] = useState(focusDefault);
@@ -163,9 +193,35 @@ export function ResultsView({ spot, board, oopSide, ipSide, oopKeys, ipKeys, res
               <span className="sv-pos-badge ip">IP</span>{ipSide && ipSide.kind === 'hand' ? 'hand' : combosFromKeys(ipKeys) + ' combos'}
             </div>
             <div className="sv-spot-line dim">Pot {spot.pot} bb · {spot.stack} bb eff · {meta.sizeCount}-size tree</div>
+            {ex && (
+              <div className="sv-model-line">
+                <strong>Villain {ex.villain}</strong>{exploitName ? ` · ${exploitName}` : ''} · {lockText('bets', ex.locks.bet)} · {lockText('folds', ex.locks.fold)} · {lockText('raises', ex.locks.raise)}
+              </div>
+            )}
           </div>
         </div>
         <div className="sv-readout-stats">
+          {ex ? (
+            <>
+              <StatCard label={`EV · ${ex.hero}`} value={ex.ev.exploit.toFixed(2)} sub={`bb · GTO play ${ex.ev.gtoVsModel.toFixed(2)}`} />
+              <div className="sv-stat sv-stat-exploit">
+                <div className="sv-stat-label">Exploit gain</div>
+                <div className={'sv-stat-value ' + (toneOf(gain) || 'accent')}>{signed(gain)}<span className="sv-stat-unit">% pot</span></div>
+                <div className="sv-stat-sub">vs playing GTO into this villain</div>
+              </div>
+              <div className="sv-stat sv-stat-exploit">
+                <div className="sv-stat-label">If villain is GTO</div>
+                <div className={'sv-stat-value ' + toneOf(vsGto)}>{signed(vsGto)}<span className="sv-stat-unit">% pot</span></div>
+                <div className="sv-stat-sub">this line vs the equilibrium</div>
+              </div>
+              <div className="sv-stat sv-stat-exploit">
+                <div className="sv-stat-label">If villain adapts</div>
+                <div className={'sv-stat-value ' + toneOf(vsAdapt)}>{signed(vsAdapt)}<span className="sv-stat-unit">% pot</span></div>
+                <div className="sv-stat-sub">fully countered pure line</div>
+              </div>
+            </>
+          ) : (
+            <>
           <StatCard label="EV · OOP" value={meta.evOOP.toFixed(2)} sub="bb" />
           <StatCard label="EV · IP" value={meta.evIP.toFixed(2)} sub="bb" />
           <div className="sv-stat sv-stat-exploit">
@@ -180,6 +236,8 @@ export function ResultsView({ spot, board, oopSide, ipSide, oopKeys, ipKeys, res
               <span className="sv-conv-iter">{meta.iterations} iters</span>
             </div>
           </div>
+            </>
+          )}
         </div>
         <div className="sv-readout-actions">
           <button className="btn btn-ghost" onClick={onBackToSetup}>Edit spot</button>
@@ -193,7 +251,11 @@ export function ResultsView({ spot, board, oopSide, ipSide, oopKeys, ipKeys, res
           <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" />
         </svg>
         {/* keep in one div: bare text in a flex row splits into columns */}
-        <div>Exploitability is measured against your chosen <strong>{meta.sizeCount}-size bet tree</strong> — it only applies to those bet sizes, not the full continuous (all-sizings) game.</div>
+        {ex ? (
+          <div>Your line is a pure best response to the villain model at their <strong>first river decision</strong>. Their later decisions stay at equilibrium, inside this {meta.sizeCount}-size bet tree.</div>
+        ) : (
+          <div>Exploitability is based on your <strong>{meta.sizeCount}-size bet tree</strong>. It only covers those bet sizes, not every possible sizing.</div>
+        )}
       </div>
 
       <div className="sv-nodebar">
@@ -203,6 +265,7 @@ export function ResultsView({ spot, board, oopSide, ipSide, oopKeys, ipKeys, res
             <button key={n.id} className={'sv-node-tab' + (n.id === nodeId ? ' active' : '')} onClick={() => setNodeId(n.id)}>
               <span className={'sv-pos-badge ' + (n.actor === 'OOP' ? 'oop' : 'ip')}>{n.actor}</span>
               {n.label.replace(/^(OOP|IP)\s*—\s*/, '')}
+              {ex && ex.locked[n.id] && <LockGlyph />}
             </button>
           ))}
         </div>
@@ -216,6 +279,13 @@ export function ResultsView({ spot, board, oopSide, ipSide, oopKeys, ipKeys, res
                 <button key={id} className={'sv-layout-btn' + (layout === id ? ' active' : '')} onClick={() => setLayout(id)}>{lbl}</button>
               ))}
             </div>
+            {ex && (
+              <div className="sv-layout-switch sv-line-switch" role="tablist" aria-label="Strategy line">
+                {[['exploit', ex.locked[node.id] ? 'Locked' : 'Exploit'], ['gto', 'GTO']].map(([id, lbl]) => (
+                  <button key={id} role="tab" aria-selected={line === id} className={'sv-layout-btn' + (line === id ? ' active' : '')} onClick={() => setLine(id)}>{lbl}</button>
+                ))}
+              </div>
+            )}
             {layout === 'heat' ? (
               <div className="sv-heat-pick">
                 <span className="sv-heat-lbl">Action</span>

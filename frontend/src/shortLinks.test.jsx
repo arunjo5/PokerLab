@@ -282,7 +282,7 @@ describe('share modal short links', () => {
     expect(screen.queryByRole('button', { name: 'Create' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Upgrade' }));
     expect(screen.queryByRole('dialog', { name: 'Share scenario' })).toBeNull();
-    expect(await screen.findByText('500 permanent short links')).toBeInTheDocument();
+    expect(await screen.findByText('500 permanent short share links')).toBeInTheDocument();
   });
 
   it('a signed-out user gets the See Pro tease in the replayer', async () => {

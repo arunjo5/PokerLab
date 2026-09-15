@@ -25,6 +25,7 @@ export function SavedSolvesPanel({ lib, onLoad }) {
                 </div>
                 <div className="sv-saved-meta">
                   {s.summary.oopCombos} vs {s.summary.ipCombos} combos · pot {s.config.spot.pot} bb · {s.summary.sizes}-size tree · {Number(s.summary.exploit).toFixed(2)}% pot
+                  {s.summary.villain && <span className="sv-saved-exploit"> · exploit vs {s.summary.villain.name}</span>}
                 </div>
               </button>
               <button

@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { limit } from '@/lib/rateLimit'
-import { requirePro } from '@/lib/stats'
+import { requirePro, STATS_VERSION } from '@/lib/stats'
 
 const PAGE = 100
 
-// imported hands for the stats page: stored stats when present, the full replay when
-// an older row still needs analysing (the client writes the result back via backfill)
+// imported hands for the stats page: stored stats when current, plus the full replay
+// when a row still needs analysing (missing or older stats; the client backfills)
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
@@ -33,14 +33,15 @@ export async function GET(request: NextRequest) {
     const page = rows.slice(0, PAGE)
     const hands = page.map((r) => {
       const rep = r.replay && typeof r.replay === 'object' && !Array.isArray(r.replay) ? (r.replay as Record<string, unknown>) : null
-      const stats = rep && rep.stats && typeof rep.stats === 'object' ? rep.stats : null
+      const stats = rep && rep.stats && typeof rep.stats === 'object' ? (rep.stats as Record<string, unknown>) : null
+      const current = !!stats && typeof stats.v === 'number' && stats.v >= STATS_VERSION
       return {
         id: r.id,
         name: r.name,
         createdAt: r.createdAt,
         session: rep && rep.session && typeof rep.session === 'object' ? rep.session : null,
         stats,
-        replay: stats ? undefined : rep,
+        replay: current ? undefined : rep,
       }
     })
     return NextResponse.json({ hands, nextCursor: rows.length > PAGE ? page[page.length - 1].id : null })

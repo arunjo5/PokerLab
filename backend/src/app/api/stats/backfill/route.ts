@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const gate = await requirePro(who.userId)
     if (gate) return gate
 
-    const parsed = await readJsonBody(request, 96 * 1024)
+    const parsed = await readJsonBody(request, 192 * 1024)
     if (parsed.error) return parsed.error
     const items = parsed.data?.items
     if (!Array.isArray(items) || items.length === 0 || items.length > MAX_ITEMS) {

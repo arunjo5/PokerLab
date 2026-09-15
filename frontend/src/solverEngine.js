@@ -1,5 +1,7 @@
 // Heads-up river CFR+ solver over a discretized bet tree. Returns per-node,
 // per-combo strategies + EV + exploitability (% pot). Amounts in big blinds.
+// Exploit mode (opts.exploit) locks the villain's first river decisions to
+// observed tendencies and best-responds for the hero.
 
 import { cardToId, evaluate7 } from './pokerEngine.js';
 
@@ -59,7 +61,7 @@ function buildTree(spot) {
 
   function showdown(pot, inv) { return { terminal: true, type: 'showdown', pot, inv }; }
   function foldT(pot, inv, winner) { return { terminal: true, type: 'fold', pot, inv, winner }; }
-  function dec(player, actions, children) { return { terminal: false, player, actions, children }; }
+  function dec(player, actions, children, extra) { return { terminal: false, player, actions, children, ...extra }; }
 
   // Options when `toAct` faces no bet: check + each distinct bet/all-in amount.
   function betOptions(pot, inv, toAct) {
@@ -91,7 +93,7 @@ function buildTree(spot) {
       const ninv = inv.slice(); ninv[toAct] += amt;
       children.push(buildFacing(1 - toAct, pot + amt, ninv, { toCall: amt, agg: toAct, depth: 0 }));
     }
-    return dec(toAct, actions, children);
+    return dec(toAct, actions, children, { kind: 'open' });
   }
 
   // Facing a bet/raise: fold / call / (raise|all-in by depth).
@@ -112,7 +114,7 @@ function buildTree(spot) {
       actions.push(st.depth === 0 ? { id: 'raise', kind: 'raise' } : { id: 'allin', kind: 'raise' });
       children.push(buildFacing(1 - toAct, pot + add, rinv, { toCall: newCall, agg: toAct, depth: st.depth + 1 }));
     }
-    return dec(toAct, actions, children);
+    return dec(toAct, actions, children, { kind: 'facing', depth: st.depth });
   }
 
   const root = buildOpen(0, spot.pot, [0, 0], false);                  // OOP first
@@ -312,9 +314,10 @@ export function solve(board, oopKeys, ipKeys, spot, opts = {}, onProgress) {
     }
   }
 
-  // avg-strategy matrix for a node into its scratch buffer
+  // avg-strategy matrix for a node into its scratch buffer (a locked/fixed one wins)
   function fillAvg(node) {
     const A = node.A, N = node.N, sBuf = node.sBuf, acc = node.strat;
+    if (node.fixed) { sBuf.set(node.fixed); return; }
     for (let i = 0; i < N; i++) {
       const base = i * A;
       let sum = 0;
@@ -324,8 +327,9 @@ export function solve(board, oopKeys, ipKeys, spot, opts = {}, onProgress) {
     }
   }
 
-  // value of p's avg strategy vs opp avg strategy (or best response if br===p)
-  function evalValue(node, p, reachP, reachOpp, br, out) {
+  // value of p's avg strategy vs opp avg strategy (or best response if br===p);
+  // record=true also writes the pure best response into node.brStrat
+  function evalValue(node, p, reachP, reachOpp, br, out, record) {
     if (node.terminal) {
       if (node.type === 'showdown') showdownCFV(p, node, reachOpp, out);
       else foldCFV(p, node, reachOpp, out);
@@ -338,10 +342,20 @@ export function solve(board, oopKeys, ipKeys, spot, opts = {}, onProgress) {
       for (let a = 0; a < A; a++) {
         const rp = node.reachBuf[a];
         for (let i = 0; i < N; i++) rp[i] = useAvg ? reachP[i] * sBuf[i * A + a] : reachP[i];
-        evalValue(node.children[a], p, rp, reachOpp, br, node.cfvBuf[a]);
+        evalValue(node.children[a], p, rp, reachOpp, br, node.cfvBuf[a], record);
       }
       if (br === p) { // best response: max over actions per combo
-        for (let i = 0; i < N; i++) { let m = -Infinity; for (let a = 0; a < A; a++) if (node.cfvBuf[a][i] > m) m = node.cfvBuf[a][i]; out[i] = m; }
+        let rec = null;
+        if (record) {
+          if (!node.brStrat) node.brStrat = new Float64Array(N * A);
+          rec = node.brStrat; rec.fill(0);
+        }
+        for (let i = 0; i < N; i++) {
+          let m = -Infinity, bi = 0;
+          for (let a = 0; a < A; a++) { const v = node.cfvBuf[a][i]; if (v > m) { m = v; bi = a; } }
+          out[i] = m;
+          if (rec) rec[i * A + bi] = 1;
+        }
       } else {
         for (let i = 0; i < N; i++) { let v = 0; for (let a = 0; a < A; a++) v += sBuf[i * A + a] * node.cfvBuf[a][i]; out[i] = v; }
       }
@@ -353,7 +367,7 @@ export function solve(board, oopKeys, ipKeys, spot, opts = {}, onProgress) {
       const ro = node.reachBuf[a];
       for (let j = 0; j < N; j++) ro[j] = reachOpp[j] * sBuf[j * A + a];
       const c = node.cfvBuf[a];
-      evalValue(node.children[a], p, reachP, ro, br, c);
+      evalValue(node.children[a], p, reachP, ro, br, c, record);
       for (let i = 0; i < np; i++) out[i] += c[i];
     }
   }
@@ -407,7 +421,7 @@ export function solve(board, oopKeys, ipKeys, spot, opts = {}, onProgress) {
     else label = `OOP — facing IP bet ${tree.repPct}%`;
     return { id, actor, facing, label, actions: node.actions.map((a) => actionMeta(a)) };
   }
-  function buildNodeSolve(id, restrictIds) {
+  function buildNodeSolve(id, restrictIds, weightOf = avgStrat) {
     const node = tree.display[id];
     if (!node) return null;
     const p = node.player, side = sides[p], A = node.A;
@@ -421,7 +435,7 @@ export function solve(board, oopKeys, ipKeys, spot, opts = {}, onProgress) {
       const rev = cmb.cards[1].v + cmb.cards[1].s + cmb.cards[0].v + cmb.cards[0].s;
       if (restrictIds && !restrictIds.has(cmb.id) && !restrictIds.has(rev)) continue;
       const weights = {};
-      for (let a = 0; a < A; a++) weights[node.actions[a].id] = avgStrat(node, i, a);
+      for (let a = 0; a < A; a++) weights[node.actions[a].id] = weightOf(node, i, a);
       combosOut.push({ id: cmb.id, hkey: cmb.hkey, cards: cmb.cards, cat: cmb.cat, str: strRank[i], weights });
     }
     const byKey = {};
@@ -445,9 +459,193 @@ export function solve(board, oopKeys, ipKeys, spot, opts = {}, onProgress) {
   const nodeSolves = {};
   for (const n of nodes) nodeSolves[n.id] = buildNodeSolve(n.id, n.actor === 'OOP' ? opts.oopRestrict : opts.ipRestrict);
 
+  // ── exploit mode ──
+  function forEachNode(fn, node = tree.root) {
+    if (node.terminal) return;
+    fn(node);
+    for (const ch of node.children) forEachNode(fn, ch);
+  }
+  const idxOf = (node, pred) => node.actions.map((a, i) => (pred(a) ? i : -1)).filter((i) => i >= 0);
+
+  // move probability between action groups until the reach-weighted frequency of
+  // G hits the target. hands closest to indifference flip first, so an over-folder
+  // gives up its weakest calls and an over-bettor adds its most marginal bets.
+  function lockGroup(node, G, target, reach, pool) {
+    const A = node.A, N = node.N, cfv = node.lockCfv;
+    if (!node.fixed) { fillAvg(node); node.fixed = Float64Array.from(node.sBuf); }
+    const st = node.fixed;
+    const massOf = () => {
+      let W = 0, cur = 0;
+      for (let i = 0; i < N; i++) {
+        const w = reach[i]; if (w <= 0) continue;
+        let g = 0; for (const a of G) g += st[i * A + a];
+        W += w; cur += w * g;
+      }
+      return { W, cur };
+    };
+    const before = massOf();
+    if (before.W <= 0) return null;
+    const eq = before.cur / before.W;
+    let need = target * before.W - before.cur;
+    if (Math.abs(need) > 1e-12) {
+      const gMix = new Float64Array(A), pMix = new Float64Array(A);
+      for (let i = 0; i < N; i++) {
+        const w = reach[i]; if (w <= 0) continue;
+        for (const a of G) gMix[a] += w * st[i * A + a];
+        for (const a of pool) pMix[a] += w * st[i * A + a];
+      }
+      const adv = new Float64Array(N);
+      for (let i = 0; i < N; i++) {
+        let mg = -Infinity, mp = -Infinity;
+        for (const a of G) if (cfv[a][i] > mg) mg = cfv[a][i];
+        for (const a of pool) if (cfv[a][i] > mp) mp = cfv[a][i];
+        adv[i] = mg - mp;
+      }
+      const grow = need > 0;
+      const order = [];
+      for (let i = 0; i < N; i++) if (reach[i] > 0) order.push(i);
+      order.sort((x, y) => (grow ? adv[y] - adv[x] : adv[x] - adv[y]) || x - y);
+      const from = grow ? pool : G, to = grow ? G : pool, toMix = grow ? gMix : pMix;
+      let rem = Math.abs(need);
+      for (const i of order) {
+        if (rem <= 1e-12) break;
+        const base = i * A, w = reach[i];
+        let avail = 0; for (const a of from) avail += st[base + a];
+        if (avail <= 0) continue;
+        const shift = Math.min(avail, rem / w);
+        for (const a of from) st[base + a] -= st[base + a] / avail * shift;
+        let toSum = 0; for (const a of to) toSum += st[base + a];
+        if (toSum > 0) for (const a of to) st[base + a] += st[base + a] / toSum * shift;
+        else {
+          let m = 0; for (const a of to) m += toMix[a];
+          if (m > 0) for (const a of to) st[base + a] += toMix[a] / m * shift;
+          else for (const a of to) st[base + a] += shift / to.length;
+        }
+        rem -= shift * w;
+      }
+      // float dust: clamp and renormalise each combo
+      for (let i = 0; i < N; i++) {
+        const base = i * A; let sum = 0;
+        for (let a = 0; a < A; a++) { if (st[base + a] < 0) st[base + a] = 0; sum += st[base + a]; }
+        if (sum > 0) for (let a = 0; a < A; a++) st[base + a] /= sum;
+      }
+    }
+    const after = massOf();
+    return { eq, target, achieved: after.cur / after.W, weight: before.W };
+  }
+
+  function runExploit(cfg) {
+    const V = cfg.villain, H = 1 - V;
+    const K = cfg.priorWeight == null ? 20 : Math.max(0, Number(cfg.priorWeight) || 0);
+    const model = cfg.model || {};
+    const evEq = V === 0 ? fin.evIP : fin.evOOP;
+
+    // equilibrium action values at the villain's first decisions decide flip order
+    evalValue(tree.root, V, rootReach[V], rootReach[H], -1, rootOut[V]);
+    forEachNode((n) => {
+      if (n.player !== V || !(n.kind === 'open' || (n.kind === 'facing' && n.depth === 0))) return;
+      n.lockCfv = n.cfvBuf.map((b) => Float64Array.from(b.subarray(0, n.N)));
+    });
+
+    // a stat is either an observed count (shrunk toward the node's own GTO rate) or a fixed rate
+    const spec = (stat) => {
+      const m = model[stat];
+      if (!m) return null;
+      if (typeof m.rate === 'number' && Number.isFinite(m.rate)) return { rate: Math.max(0, Math.min(1, m.rate)) };
+      const hits = Number(m.hits), opps = Number(m.opps);
+      if (!(opps > 0) || !(hits >= 0)) return null;
+      return { hits: Math.min(hits, opps), opps };
+    };
+    const specs = { bet: spec('bet'), fold: spec('fold'), raise: spec('raise') };
+    const acc = { bet: null, fold: null, raise: null };
+
+    // walk top-down so a locked open node feeds the right reach into facing nodes
+    (function walk(node, reach) {
+      if (node.terminal) return;
+      if (node.player === V) {
+        if (node.kind === 'open') lock('bet', node, idxOf(node, (a) => a.kind === 'bet'), idxOf(node, (a) => a.kind === 'check'), reach);
+        if (node.kind === 'facing' && node.depth === 0) {
+          lock('fold', node, idxOf(node, (a) => a.kind === 'fold'), idxOf(node, (a) => a.kind !== 'fold'), reach);
+          lock('raise', node, idxOf(node, (a) => a.kind === 'raise'), idxOf(node, (a) => a.kind === 'call'), reach);
+        }
+        fillAvg(node);
+        const A = node.A, N = node.N;
+        for (let a = 0; a < A; a++) {
+          const r = new Float64Array(N);
+          for (let i = 0; i < N; i++) r[i] = reach[i] * node.sBuf[i * A + a];
+          walk(node.children[a], r);
+        }
+        return;
+      }
+      for (const ch of node.children) walk(ch, reach);
+    })(tree.root, new Float64Array(sides[V].length).fill(1));
+
+    function lock(stat, node, G, pool, reach) {
+      const sp = specs[stat];
+      if (!sp || !G.length || !pool.length) return;
+      // current frequency first: it is the prior an observed count shrinks toward
+      fillAvg(node);
+      let W = 0, cur = 0;
+      for (let i = 0; i < node.N; i++) {
+        const w = reach[i]; if (w <= 0) continue;
+        let g = 0; for (const a of G) g += node.sBuf[i * node.A + a];
+        W += w; cur += w * g;
+      }
+      if (W <= 0) return; // unreachable under the locks so far: leave it unlocked
+      const eq = cur / W;
+      const target = sp.rate != null ? sp.rate : (sp.hits + K * eq) / (sp.opps + K);
+      const r = lockGroup(node, G, target, reach, pool);
+      if (!r) return;
+      const a = acc[stat] || (acc[stat] = { nodes: 0, eq: 0, target: 0, achieved: 0, weight: 0 });
+      a.nodes++; a.weight += r.weight;
+      a.eq += r.eq * r.weight; a.target += r.target * r.weight; a.achieved += r.achieved * r.weight;
+    }
+
+    const locks = {};
+    for (const stat of ['bet', 'fold', 'raise']) {
+      const a = acc[stat];
+      locks[stat] = a && a.weight > 0
+        ? { nodes: a.nodes, eq: a.eq / a.weight, target: a.target / a.weight, achieved: a.achieved / a.weight, ...(specs[stat].rate != null ? { rate: specs[stat].rate } : { hits: specs[stat].hits, opps: specs[stat].opps }) }
+        : null;
+    }
+
+    // hero: GTO line vs the model, then the best response, recorded per node
+    const gtoVsModel = rootValue(H, -1);
+    evalValue(tree.root, H, rootReach[H], rootReach[V], H, rootOut[H], true);
+    let sum = 0; for (let i = 0; i < rootOut[H].length; i++) sum += rootOut[H][i];
+    const exploit = sum / Z;
+
+    // freeze the hero on that line and unlock the villain: what a GTO or adapting villain does to it
+    forEachNode((n) => { if (n.player === H) n.fixed = n.brStrat; });
+    const held = [];
+    forEachNode((n) => { if (n.player === V && n.fixed) { held.push([n, n.fixed]); n.fixed = null; } });
+    const exploitVsGto = rootValue(H, -1);
+    const exploitVsBr = spot.pot - rootValue(V, V);
+    for (const [n, f] of held) n.fixed = f;
+
+    const weightOf = (node, i, a) => (node.fixed ? node.fixed[i * node.A + a] : avgStrat(node, i, a));
+    const exNodeSolves = {}, locked = {};
+    for (const n of nodes) {
+      exNodeSolves[n.id] = buildNodeSolve(n.id, n.actor === 'OOP' ? opts.oopRestrict : opts.ipRestrict, weightOf);
+      const dn = tree.display[n.id];
+      locked[n.id] = dn.player === V && !!dn.fixed;
+    }
+    forEachNode((n) => { n.fixed = null; n.brStrat = null; n.lockCfv = null; });
+
+    return {
+      villain: V === 0 ? 'OOP' : 'IP', hero: H === 0 ? 'OOP' : 'IP',
+      priorWeight: K, locks,
+      ev: { eq: evEq, gtoVsModel, exploit, exploitVsGto, exploitVsBr },
+      nodeSolves: exNodeSolves, locked,
+    };
+  }
+  const ex = opts.exploit;
+  const exploitOut = ex && (ex.villain === 0 || ex.villain === 1) ? runExploit(ex) : null;
+
   return {
     nodes,
     nodeSolves,
+    exploit: exploitOut,
     meta: {
       potBb: spot.pot, evOOP: fin.evOOP, evIP: fin.evIP,
       exploitPctPot: fin.exploit, iterations: iters, sizeCount, repBetPct: tree.repPct,

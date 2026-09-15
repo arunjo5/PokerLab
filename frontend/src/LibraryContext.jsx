@@ -4,7 +4,7 @@ import * as api from './library.js';
 
 // without a provider (unit tests) everything reads as signed out
 const STUB = {
-  available: false, plan: 'free', limits: null,
+  available: false, plan: 'free', limits: null, userKey: '',
   ranges: [], rangesLoaded: false, refreshRanges: async () => {},
   saveRange: async () => ({ ok: false, error: 'Sign in to save ranges' }),
   updateRange: async () => ({ ok: false }), deleteRange: async () => ({ ok: false }),
@@ -93,12 +93,13 @@ export function LibraryProvider({ children }) {
 
   const value = useMemo(() => ({
     available: !!user,
+    userKey,
     plan: plan.plan,
     limits: plan.limits ? plan.limits[plan.plan] : null,
     ranges, rangesLoaded, refreshRanges, saveRange, updateRange, deleteRange,
     solves, solvesLoaded, refreshSolves, saveSolve, renameSolve, deleteSolve,
     openPlans,
-  }), [user, plan, ranges, rangesLoaded, refreshRanges, saveRange, updateRange, deleteRange,
+  }), [user, userKey, plan, ranges, rangesLoaded, refreshRanges, saveRange, updateRange, deleteRange,
     solves, solvesLoaded, refreshSolves, saveSolve, renameSolve, deleteSolve, openPlans]);
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;

@@ -1,9 +1,8 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { apiCall, jsonBody } from './api.js';
-import { aggregate, analyzeHand, inferHeroName, heroSeatByName, sessionKey, sessionName, handLabel, cumulativeNet } from './sessionStats.js';
-
-// cached per signed-in user so reopening the page is instant
-const cache = { key: null, items: null };
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { aggregate, sessionKey, sessionName, handLabel, cumulativeNet } from './sessionStats.js';
+import { loadStatsHands, cachedStatsHands } from './statsHands.js';
+import { Info } from './Info.jsx';
+import { Menu } from './Menu.jsx';
 
 const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 function money(n, cents) {
@@ -17,51 +16,6 @@ const fmtBb = (b) => (b == null ? '—' : `${b > 0 ? '+' : b < 0 ? '−' : ''}${
 const fmtAf = (a) => (a == null ? '—' : a === Infinity ? '∞' : a.toFixed(1));
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '');
 const tone = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
-
-// pull every imported hand; analyse any that predate stored stats and write those back
-async function loadHands(setProgress) {
-  const items = [];
-  let cursor = null;
-  do {
-    const res = await apiCall(`/api/stats/hands?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
-    if (!res.ok) throw Object.assign(new Error(res.error || 'Could not load hands'), { code: res.code });
-    for (const h of res.hands || []) items.push(h);
-    cursor = res.nextCursor || null;
-    setProgress(`Loading hands… ${items.length.toLocaleString('en-US')}`);
-  } while (cursor);
-
-  const legacy = items.filter(it => !it.stats && it.replay);
-  if (legacy.length) {
-    setProgress(`Analyzing ${plural(legacy.length, 'older hand', 'older hands')}…`);
-    const heroName = inferHeroName(legacy.map(it => it.replay));
-    const computed = [];
-    for (const it of legacy) {
-      const seat = it.replay.hero != null ? it.replay.hero : heroSeatByName(it.replay, heroName);
-      const stats = analyzeHand(it.replay, seat);
-      if (stats) { it.stats = stats; computed.push({ id: it.id, stats }); }
-      delete it.replay;
-    }
-    for (let i = 0; i < computed.length; i += 100) {
-      await apiCall('/api/stats/backfill', { method: 'POST', ...jsonBody({ items: computed.slice(i, i + 100) }) });
-    }
-  }
-  return items;
-}
-
-// gold (i) that explains a stat on hover or keyboard focus
-function Info({ label, text }) {
-  const id = useId();
-  return (
-    <span className="st-info">
-      <button type="button" className="st-info-btn" aria-label={`How ${label} is calculated`} aria-describedby={id}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 8h.01" />
-        </svg>
-      </button>
-      <span role="tooltip" id={id} className="st-tip">{text}</span>
-    </span>
-  );
-}
 
 const EXPLAIN = {
   hands: 'Hands you were dealt in your imported sessions.',
@@ -150,46 +104,6 @@ function NetChart({ points, cents }) {
   );
 }
 
-// session picker in the app's menu style; closes on outside click or escape
-function SessionMenu({ value, options, onChange }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-  }, [open]);
-  const current = options.find(o => o.value === value) || options[0];
-  return (
-    <div className="st-menu-wrap" ref={ref}>
-      <button type="button" className="btn st-menu-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(o => !o)}>
-        <span className="st-menu-current">{current.label}</span>
-        <span className="st-menu-caret">▾</span>
-      </button>
-      {open && (
-        <div className="st-menu" role="listbox" aria-label="Session">
-          {options.map(o => (
-            <button type="button" key={o.value} role="option" aria-selected={o.value === value}
-              className={'st-menu-item' + (o.value === value ? ' active' : '')}
-              onClick={() => { onChange(o.value); setOpen(false); }}>
-              <span className="st-menu-check">
-                {o.value === value && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                )}
-              </span>
-              <span className="st-menu-label">{o.label}</span>
-              <span className="st-menu-count">{o.count}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function HandList({ hands, cents, empty, onOpenHand }) {
   if (hands.length === 0) return <div className="st-none">{empty}</div>;
   return (
@@ -212,7 +126,7 @@ function HandList({ hands, cents, empty, onOpenHand }) {
 export function StatsView({ onExit, onNavigate, themeToggle, userMenu, user, plan, onUpgrade, onOpenHand }) {
   const isPro = plan.plan === 'pro';
   const key = user ? (user.id || user.email) : null;
-  const [items, setItems] = useState(() => (cache.key === key ? cache.items : null));
+  const [items, setItems] = useState(() => cachedStatsHands(key));
   const [progress, setProgress] = useState(null);
   const [error, setError] = useState(null);
   const [sessionFilter, setSessionFilter] = useState('all');
@@ -224,9 +138,7 @@ export function StatsView({ onExit, onNavigate, themeToggle, userMenu, user, pla
     setError(null);
     setProgress('Loading hands…');
     try {
-      const loaded = await loadHands(setProgress);
-      cache.key = key; cache.items = loaded;
-      setItems(loaded);
+      setItems(await loadStatsHands(key, setProgress));
     } catch (e) {
       setError(e.message || 'Could not load hands');
     } finally {
@@ -281,7 +193,7 @@ export function StatsView({ onExit, onNavigate, themeToggle, userMenu, user, pla
           </div>
           {isPro && all && all.hands > 0 && (
             <div className="stats-controls">
-              <SessionMenu
+              <Menu label="Session"
                 value={sessionFilter}
                 onChange={setSessionFilter}
                 options={[

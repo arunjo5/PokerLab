@@ -99,6 +99,12 @@ describe('SavedSolvesPanel rows', () => {
     expect(rows()[0].querySelectorAll('.sv-saved-cards > div')).toHaveLength(0);
   });
 
+  it('tags an exploit solve with its villain', () => {
+    renderPanel({ solves: [savedSolve({ summary: { oopCombos: 4, ipCombos: 6, sizes: 4, exploit: 0.4242, villain: { seat: 'IP', name: 'rex', gain: 14.2 } } })] });
+    expect(rows()[0].querySelector('.sv-saved-meta').textContent).toBe('4 vs 6 combos · pot 20 bb · 4-size tree · 0.42% pot · exploit vs rex');
+    expect(rows()[0].querySelector('.sv-saved-exploit').textContent).toBe(' · exploit vs rex');
+  });
+
   it('clicking the row hands the whole saved solve back', () => {
     const { onLoad } = renderPanel({ solves: [savedSolve(), savedSolve({ id: 's2', name: 'Turn probe' })] });
     fireEvent.click(rows()[1].querySelector('.sv-saved-load'));

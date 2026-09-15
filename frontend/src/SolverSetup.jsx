@@ -5,6 +5,16 @@ import { PlayingCard, EmptyCardSlot, SuitGlyph, CardChip, SUIT_RED, BoardStrip }
 import { RangePicker } from './Pickers.jsx';
 import { RangeThumbnail } from './solverBits.jsx';
 import { combosFromKeys, equityMatchup } from './solverEngine.js';
+import { Info } from './Info.jsx';
+import { Menu } from './Menu.jsx';
+import { PRIOR_WEIGHT } from './sessionStats.js';
+
+// the villain's first river decisions the exploit mode can lock
+export const TENDENCIES = [
+  { id: 'bet', label: 'Bets when checked to', hits: 'bet', opps: 'betOpp', explain: 'How often the villain bets the river when nobody has bet yet, including when first to act.' },
+  { id: 'fold', label: 'Folds to a bet', hits: 'fold', opps: 'faced', explain: 'How often the villain folds the first time they face a river bet.' },
+  { id: 'raise', label: 'Raises a bet', hits: 'raise', opps: 'faced', explain: 'How often the villain raises the first time they face a river bet. Calls are the rest.' },
+];
 
 const SUIT_ORDER_S = ['s', 'h', 'c', 'd'];
 const VALUE_ORDER_S = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -307,7 +317,106 @@ function EquityReadout({ oopSide, ipSide, board }) {
   );
 }
 
-export function SetupView({ spot, setSpot, board, setBoard, oopSide, setOopSide, ipSide, setIpSide, onSolve }) {
+const pct = (n, d) => (d > 0 ? Math.round((100 * n) / d) : null);
+const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
+
+function LockIcon() {
+  return (
+    <svg className="sv-tab-lock" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
+
+// GTO, or lock the villain's river tendencies (custom rates or an imported opponent) and best-respond
+function VillainModel({ exploit, setExploit, pro, signedIn, opponents, openPlans }) {
+  const on = exploit.mode === 'exploit';
+  const set = (patch) => setExploit((e) => ({ ...e, ...patch }));
+  const src = exploit.source;
+  const list = opponents.list || [];
+  const live = src.kind === 'opponent' ? (src.obs || list.find((o) => o.name === src.name) || null) : null;
+  // the snapshot is what gets solved; newer imports need a re-pick
+  const newer = src.kind === 'opponent' && src.obs ? list.find((o) => o.name === src.name && o.hands > src.obs.hands) : null;
+  const options = [{ value: 'custom', label: 'Custom rates' }, ...list.map((o) => ({ value: 'opp:' + o.name, label: o.name, count: plural(o.hands, 'hand', 'hands') }))];
+  if (src.kind === 'opponent' && !list.some((o) => o.name === src.name)) options.push({ value: 'opp:' + src.name, label: src.name, count: 'saved' });
+  function pick(v) {
+    if (v === 'custom') { set({ source: { kind: 'custom' } }); return; }
+    const name = v.slice(4);
+    const o = list.find((x) => x.name === name) || (src.kind === 'opponent' && src.name === name ? src.obs : null);
+    set({ source: { kind: 'opponent', name, obs: o } });
+  }
+  return (
+    <div className="sv-field sv-villain">
+      <div className="sv-field-label">Villain model <span className="sv-field-hint">what the solver assumes about the other player</span></div>
+      <div className="sv-villain-head">
+        <div className="sv-layout-switch" role="tablist" aria-label="Villain model">
+          <button type="button" role="tab" aria-selected={!on} className={'sv-layout-btn' + (!on ? ' active' : '')} onClick={() => set({ mode: 'gto' })}>GTO</button>
+          <button type="button" role="tab" aria-selected={on} className={'sv-layout-btn' + (on ? ' active' : '')} onClick={() => set({ mode: 'exploit' })}>Exploit{!pro && <LockIcon />}</button>
+        </div>
+        {on && pro && (
+          <div className="sv-villain-side">
+            <span className="sv-villain-lbl">Villain is</span>
+            <div className="sv-layout-switch" role="tablist" aria-label="Villain seat">
+              {['OOP', 'IP'].map((seat) => (
+                <button key={seat} type="button" role="tab" aria-selected={exploit.villain === seat} className={'sv-layout-btn' + (exploit.villain === seat ? ' active' : '')} onClick={() => set({ villain: seat })}>{seat}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      {on && !pro && (
+        <div className="share-pro-tease">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /></svg>
+          <span>Pro models the villain using real river tendencies from your imports and solves your best response.</span>
+          <button type="button" className="link-btn" onClick={openPlans}>{signedIn ? 'Upgrade' : 'See Pro'}</button>
+        </div>
+      )}
+      {on && pro && (
+        <>
+          <div className="sv-villain-src">
+            <span className="sv-villain-lbl">Tendencies from</span>
+            <Menu label="Villain tendencies" value={src.kind === 'custom' ? 'custom' : 'opp:' + src.name} options={options} onChange={pick} />
+            {opponents.loading && <span className="sv-field-hint">Loading your imports…</span>}
+            {!opponents.loading && opponents.error && <span className="sv-field-hint">{opponents.error}</span>}
+            {!opponents.loading && !opponents.error && opponents.loaded && list.length === 0 && <span className="sv-field-hint">Import PokerNow hands to model real opponents.</span>}
+            {newer && <span className="sv-field-hint">{plural(newer.hands - src.obs.hands, 'newer hand', 'newer hands')} imported since. Pick {src.name} again to use them.</span>}
+          </div>
+          <div className="sv-tend-list">
+            {TENDENCIES.map((t) => {
+              if (src.kind === 'custom') {
+                const v = exploit.custom[t.id];
+                return (
+                  <div key={t.id} className="sv-tend-row">
+                    <span className="sv-tend-label">{t.label}<Info label={t.label} text={t.explain} /></span>
+                    <input type="range" className="sv-range" min="0" max="100" value={v} aria-label={t.label}
+                      onChange={(e) => set({ custom: { ...exploit.custom, [t.id]: Number(e.target.value) } })} />
+                    <span className="sv-tend-val">{v}%</span>
+                  </div>
+                );
+              }
+              const opps = live ? live[t.opps] : 0, hits = live ? live[t.hits] : 0;
+              const p = pct(hits, opps);
+              return (
+                <div key={t.id} className="sv-tend-row">
+                  <span className="sv-tend-label">{t.label}<Info label={t.label} text={t.explain} /></span>
+                  <span className="sv-tend-obs">{p == null ? 'No data · uses GTO' : `${hits} of ${opps} · ${p}%`}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="sv-villain-note">
+            {src.kind === 'custom'
+              ? 'These rates lock the villain’s first river decision. Their later decisions stay at GTO.'
+              : `Small samples are pulled toward the GTO rate: rate = (n × observed + ${PRIOR_WEIGHT} × GTO) ÷ (n + ${PRIOR_WEIGHT}). The villain’s later decisions stay at GTO.`}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function SetupView({ spot, setSpot, board, setBoard, oopSide, setOopSide, ipSide, setIpSide, onSolve,
+  exploit = null, setExploit = () => {}, pro = false, signedIn = false, opponents = { list: [], loading: false, error: null, loaded: false }, openPlans = () => {} }) {
   const [boardDeal, setBoardDeal] = useState(false);
   const [sideEdit, setSideEdit] = useState(null);
   const filled = board.filter(Boolean).length;
@@ -368,6 +477,12 @@ export function SetupView({ spot, setSpot, board, setBoard, oopSide, setOopSide,
               <NumField label="Effective stack" value={spot.stack} suffix="bb" onChange={(v) => setSpot((s) => ({ ...s, stack: v }))} />
             </div>
             <BetSizeEditor spot={spot} setSpot={setSpot} />
+            {exploit && (
+              <>
+                <div className="sv-divider" />
+                <VillainModel exploit={exploit} setExploit={setExploit} pro={pro} signedIn={signedIn} opponents={opponents} openPlans={openPlans} />
+              </>
+            )}
             <div className="sv-solve-row">
               <div className="sv-tree-summary">Tree · <strong>{sizeCount}</strong> bet size{sizeCount === 1 ? '' : 's'} · SPR {spot.pot ? (spot.stack / spot.pot).toFixed(1) : '—'}</div>
               <button className="btn btn-primary sv-solve-btn" disabled={!ready} onClick={onSolve}>
