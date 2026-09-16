@@ -31,8 +31,8 @@ function toCard(str) {
   return { v: str[0], s: str[1] }; // 'Qc' -> {v:'Q',s:'c'}
 }
 
-function money(cents) {
-  return '$' + (cents / 100);
+function money(v, cents = true) {
+  return cents ? '$' + (v / 100) : String(v);
 }
 
 // Occupied seats in clockwise order starting at the button.
@@ -91,9 +91,12 @@ function convertHand(h, heroId) {
     sb: h.smallBlind || 0,
     bb: h.bigBlind || 0,
     ante: h.ante || 0,
-    cents: true, // PokerNow amounts are in cents; the replayer divides by 100 to show dollars
+    // cash amounts are in cents (the replayer divides by 100); tournament chips are whole
+    cents: h.cents !== false,
     seats,
   };
+  // a big-blind ante is posted by one seat, so it rides per seat
+  if (h.antes) setup.antes = order.map((physSeat) => Number(h.antes[physSeat]) || 0);
 
   // type 7/8 aren't reliably call vs bet, so classify by the committed value
   // vs the current street bet: over it is a bet/raise, otherwise a call.
@@ -163,14 +166,16 @@ function convertHand(h, heroId) {
     }
   }
 
-  // rebuild and compare to PokerNow's pot (both return uncalled bets, so the
-  // final pot should equal the payout); mismatch = mis-parse
+  // rebuild and compare to the log's payout (both return uncalled bets, so the pot
+  // less rake plus any dead money should equal it); mismatch = mis-parse
+  const rake = Number(h.rake) || 0;
+  const dead = Number(h.dead) || 0;
   let valid = false;
   let runResults = null;
   try {
     const frames = ReplayEngine.buildReplay(setup, actions, board);
     const last = frames[frames.length - 1];
-    valid = Math.abs(last.pot - winTotal) <= 1;
+    valid = Math.abs(last.pot + dead - rake - winTotal) <= 1;
 
     // Run it twice: award half the pot per board to that board's winner(s).
     // Only keep it if the per-board split reconciles with PokerNow's payouts.
@@ -207,13 +212,14 @@ function convertHand(h, heroId) {
 
   return {
     number: parseInt(h.number, 10),
+    id: typeof h.id === 'string' && h.id ? h.id : null,
     valid,
     summary: {
-      stakes: `${money(setup.sb)}/${money(setup.bb)}`,
+      stakes: `${money(setup.sb, setup.cents)}/${money(setup.bb, setup.cents)}`,
       players: names,
       heroCards: heroCards || null,
       board: board.slice(),
-      potLabel: winTotal ? `${money(winTotal)} pot` : null,
+      potLabel: winTotal ? `${money(winTotal, setup.cents)} pot` : null,
       runTwice: !!board2,
     },
     replay: { setup, actions, board, board2, won: wonBySeat, runResults, hero: heroIdx == null ? null : heroIdx },

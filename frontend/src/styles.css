@@ -3232,3 +3232,4 @@ body {
   .stats { padding-top: 16px; }
   .stats-title { font-size: 24px; }
 }
+.upload-skipped { font-size: 11px; color: var(--gold); margin-right: 10px; }

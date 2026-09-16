@@ -139,17 +139,23 @@ describe('UploadModal csv intake', () => {
     expect(screen.getByText('tim')).toBeInTheDocument();
   });
 
-  it('still rejects a .txt file before reading it', () => {
+  it('reads a .txt file holding a csv log', async () => {
     const { container } = renderModal();
     dropFile(container, LOG3, 'log.txt', 'text/plain');
-    expect(screen.getByText(/\.TXT file — PokerNow logs are \.json or \.csv/)).toBeInTheDocument();
+    await screen.findByText(/players? in this log/);
+  });
+
+  it('rejects an unsupported extension before reading it', () => {
+    const { container } = renderModal();
+    dropFile(container, LOG3, 'log.pdf', 'application/pdf');
+    expect(screen.getByText(/\.PDF file — hand histories are \.json, \.csv or \.txt/)).toBeInTheDocument();
     expect(screen.getByText(/Drag a log here/)).toBeInTheDocument();
   });
 
   it('rejects csv text with no entry header', async () => {
     const { container } = renderModal();
     dropFile(container, 'at,order\n"2026-09-15T18:44:06.093Z",100\n', 'log.csv', 'text/csv');
-    await screen.findByText(/doesn't look like a PokerNow log/);
+    await screen.findByText(/doesn't look like a hand history/);
     expect(screen.getByText(/Drag a log here/)).toBeInTheDocument();
   });
 
@@ -166,12 +172,12 @@ describe('UploadModal csv intake', () => {
     expect(screen.getByText('empty.csv')).toBeInTheDocument();
   });
 
-  it('offers both extensions on the dropzone', () => {
+  it('offers every extension on the dropzone', () => {
     const { container } = renderModal();
     expect([...container.querySelectorAll('.upload-drop-sub .mono')].map((el) => el.textContent))
-      .toEqual(['.json', '.csv']);
+      .toEqual(['.json', '.csv', '.txt']);
     expect(container.querySelector('input[type="file"]').getAttribute('accept'))
-      .toBe('.json,.csv,application/json,text/csv');
+      .toBe('.json,.csv,.txt,application/json,text/csv,text/plain');
   });
 });
 

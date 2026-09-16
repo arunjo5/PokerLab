@@ -22,6 +22,7 @@ export function encodeReplay(hand) {
   });
   const obj = { bb: s.bb || 0, sb: s.sb || 0, st, ac, bd: (hand.board || []).map(cardToId) };
   if (s.ante) obj.an = s.ante;
+  if (Array.isArray(s.antes)) obj.as = s.antes;
   if (s.cents) obj.ce = 1;
   if (hand.board2) obj.b2 = hand.board2.map(cardToId);
   if (hand.won) obj.wn = hand.won;
@@ -44,7 +45,7 @@ function expandReplayV2(o) {
     return act;
   });
   return {
-    setup: { sb: o.sb || 0, bb: o.bb || 0, ante: o.an || 0, cents: !!o.ce, seats },
+    setup: { sb: o.sb || 0, bb: o.bb || 0, ante: o.an || 0, cents: !!o.ce, seats, ...(Array.isArray(o.as) ? { antes: o.as } : {}) },
     actions,
     board: (o.bd || []).map(idToCard),
     board2: o.b2 ? o.b2.map(idToCard) : null,

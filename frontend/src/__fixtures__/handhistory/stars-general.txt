@@ -1,0 +1,40 @@
+PokerStars Game #109681313810:  Hold'em No Limit ($0.05/$0.10 USD) - 2014/01/06 7:21:05 ET
+Table 'Table One' 6-max Seat #4 is the button
+Seat 1: ana ($47.63 in chips) 
+Seat 2: ben ($25 in chips) 
+Seat 3: cleo ($26.62 in chips) 
+Seat 4: dev ($20 in chips) 
+Seat 5: eli ($26.17 in chips) 
+Seat 6: fay ($9.29 in chips) 
+eli: posts small blind $0.05
+fay: posts big blind $0.10
+ana: posts the ante $0.02
+ben: posts the ante $0.02
+cleo: posts the ante $0.02
+dev: posts the ante $0.02
+eli: posts the ante $0.02
+fay: posts the ante $0.02
+*** HOLE CARDS ***
+ana: calls $0.10
+ben: folds 
+cleo: raises $0.40 to $0.50
+dev: folds 
+eli: folds 
+fay: folds 
+ana: calls $0.40
+*** FLOP *** [Qh Jc 3h]
+ana: checks 
+cleo: bets $0.95
+ana: folds 
+Uncalled bet ($0.95) returned to cleo
+cleo collected $1.21 from pot
+cleo: doesn't show hand 
+*** SUMMARY ***
+Total pot $1.27 | Rake $0.06 
+Board [Qh Jc 3h]
+Seat 1: ana folded on the Flop
+Seat 2: ben folded before Flop (didn't bet)
+Seat 3: cleo collected ($1.21)
+Seat 4: dev (button) folded before Flop (didn't bet)
+Seat 5: eli (small blind) folded before Flop
+Seat 6: fay (big blind) folded before Flop

@@ -4,11 +4,13 @@ import { UploadModal } from './UploadModal.jsx';
 
 afterEach(() => vi.unstubAllGlobals());
 
-// minimal convertible hands: empty event lists parse fine for the modal's purposes
+// minimal convertible hands: nobody acts, so the blinds are the whole pot and the
+// button collects them — enough to reconcile, which the modal requires to list a hand
 const player = (seat, id, name) => ({ seat, id, name, stack: 10000 });
 const hand = (number, players, over = {}) => ({
   number: String(number), gameType: 'th', dealerSeat: players[0].seat,
-  smallBlind: 50, bigBlind: 100, players, events: [], ...over,
+  smallBlind: 50, bigBlind: 100, players,
+  events: [{ payload: { type: 10, seat: players[0].seat, value: 150 } }], ...over,
 });
 const AB = () => [player(0, 'p_alice', 'alice'), player(1, 'p_bob', 'bob')];
 const abLog = (numbers) => ({ playerId: 'p_alice', hands: numbers.map((n) => hand(n, AB())) });
@@ -58,10 +60,10 @@ const enter = (input, value) => {
 };
 
 describe('UploadModal file intake (drop phase)', () => {
-  it('rejects a non-.json extension and stays on the dropzone', () => {
+  it('rejects an unsupported extension and stays on the dropzone', () => {
     const { container } = renderModal();
-    dropFile(container, 'whatever', 'log.txt', 'text/plain');
-    expect(screen.getByText(/\.TXT file — PokerNow logs are \.json or \.csv/)).toBeInTheDocument();
+    dropFile(container, 'whatever', 'log.pdf', 'application/pdf');
+    expect(screen.getByText(/\.PDF file — hand histories are \.json, \.csv or \.txt/)).toBeInTheDocument();
     expect(screen.getByText(/Drag a log here/)).toBeInTheDocument();
   });
 
@@ -81,7 +83,7 @@ describe('UploadModal file intake (drop phase)', () => {
     dropFile(container, 'not json');
     await screen.findByText(/couldn't read that file/);
     dropFile(container, '{"foo":1}');
-    await screen.findByText(/doesn't look like a PokerNow log/);
+    await screen.findByText(/doesn't look like a hand history/);
     expect(screen.queryByText(/couldn't read that file/)).toBeNull();
   });
 

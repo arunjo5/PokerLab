@@ -1,0 +1,34 @@
+Poker Hand #TM1848372910: Tournament #94827361, Bounty Hunters Special $5.25 Hold'em No Limit - Level8(300/600) - 2026/03/14 21:05:11
+Table '94827361 12' 8-max Seat #4 is the button
+Seat 1: 4f2b9c01 (12,480 in chips)
+Seat 2: Hero (9,150 in chips)
+Seat 3: a71de55f (23,905 in chips)
+Seat 4: 0cc8e142 (6,300 in chips)
+Hero: posts the ante 600
+4f2b9c01: posts small blind 300
+Hero: posts big blind 600
+*** HOLE CARDS ***
+Dealt to Hero [Qs Qd]
+Dealt to 4f2b9c01 
+Dealt to a71de55f 
+Dealt to 0cc8e142 
+a71de55f: folds
+0cc8e142: raises 1200 to 1800
+4f2b9c01: folds
+Hero: raises 6750 to 8550 and is all-in
+0cc8e142: calls 4500 and is all-in
+Hero: shows [Qs Qd]
+0cc8e142: shows [Ah Kc]
+Uncalled bet (2250) returned to Hero
+*** FLOP *** [2c 7d Jh]
+*** TURN *** [2c 7d Jh] [4s]
+*** RIVER *** [2c 7d Jh 4s] [9c]
+*** SHOWDOWN ***
+Hero collected 13500 from pot
+*** SUMMARY ***
+Total pot 13500 | Rake 0 | Jackpot 0 | Bingo 0 | Fortune 0 | Tax 0
+Board [2c 7d Jh 4s 9c]
+Seat 1: 4f2b9c01 (small blind) folded before Flop
+Seat 2: Hero (big blind) showed [Qs Qd] and won (13500) with Pair of Queens
+Seat 3: a71de55f (button) folded before Flop (didn't bet)
+Seat 4: 0cc8e142 showed [Ah Kc] and lost with Ace-King high
