@@ -27,6 +27,31 @@ const NAMES_KEY = 'holdem_player_names_v1';
 const THEME_KEY = 'holdem_theme_v1';
 
 const safeJson = async (r) => { try { return await r.json(); } catch { return null; } };
+
+// hands go up in batches, each body well under the server's cap
+const IMPORT_MAX = 300;
+const IMPORT_CHUNK = 25;
+const IMPORT_CHUNK_BYTES = 400 * 1024;
+function importChunks(items) {
+  const out = [];
+  let cur = [], bytes = 0;
+  for (const it of items) {
+    const size = JSON.stringify(it).length;
+    if (cur.length && (cur.length >= IMPORT_CHUNK || bytes + size > IMPORT_CHUNK_BYTES)) { out.push(cur); cur = []; bytes = 0; }
+    cur.push(it);
+    bytes += size;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+function importResult(saved, duplicates, dropped) {
+  const hands = (n) => `${n} hand${n === 1 ? '' : 's'}`;
+  if (saved && duplicates) return `${hands(saved)} added, ${duplicates} already imported`;
+  if (saved) return `${hands(saved)} added to history`;
+  if (duplicates) return 'Already in your history';
+  if (dropped) return 'Your history is full, nothing was kept';
+  return 'Could not import those hands';
+}
 const safeFetchJson = async (url) => { try { const r = await fetch(url, { credentials: 'include' }); return r.ok ? await safeJson(r) : null; } catch { return null; } };
 const HISTORY_PAGE = 60;
 
@@ -134,6 +159,9 @@ export default function App() {
   const [shareUrl, setShareUrl] = useState('');
   const [sharedToast, flashShared] = useFlash(3600, false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  // the plan's storage cap bounds one import, so a free account isn't invited to
+  // add hands it can't keep; IMPORT_MAX keeps a single upload bounded either way
+  const importCap = Math.min(IMPORT_MAX, plan.saveCap || 25);
   const [importToast, flashImport, setImportToast] = useFlash(3200);
 
   // ── Billing: plan gate, upgrade prompt, return from checkout ──
@@ -536,42 +564,45 @@ export default function App() {
   async function onImportConfirm(chosen, meta) {
     setUploadOpen(false);
     setImportToast(`Importing ${chosen.length} hand${chosen.length === 1 ? '' : 's'}…`);
-    let saved = 0;
-    let lastSave = null;
     // one import = one session; each hand carries its own stats so the stats page stays cheap
     const session = { id: 's' + Date.now().toString(36), label: sessionLabel(meta && meta.fileName), at: new Date().toISOString() };
-    for (const h of chosen) {
+    const items = chosen.map((h) => {
       const seats = (h.replay && h.replay.setup && h.replay.setup.seats) || [];
-      const playersForRow = seats.map(s =>
-        s.cards && s.cards.length === 2 ? { kind: 'hand', hand: s.cards } : null
-      );
-      const replay = { ...h.replay, session, stats: analyzeHand(h.replay) };
+      return {
+        handId: h.id || undefined,
+        name: `Hand #${h.number}`,
+        players: seats.map(s => (s.cards && s.cards.length === 2 ? { kind: 'hand', hand: s.cards } : null)),
+        board: (h.replay && h.replay.board) || [],
+        odds: {},
+        isReplay: true,
+        replay: { ...h.replay, session, stats: analyzeHand(h.replay) },
+        favorite: false,
+      };
+    });
+
+    let saved = 0, duplicates = 0, dropped = 0, lastSave = null;
+    for (const chunk of importChunks(items)) {
       try {
-        const r = await fetch('/api/searches', {
+        const r = await fetch('/api/searches/import', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: `Hand #${h.number}`,
-            players: playersForRow,
-            board: (h.replay && h.replay.board) || [],
-            odds: {},
-            isReplay: true,
-            replay,
-            favorite: false,
-          }),
+          body: JSON.stringify({ items: chunk }),
         });
         if (r.ok) {
-          saved++;
-          lastSave = await safeJson(r);
+          const data = await safeJson(r);
+          saved += (data && data.saved) || 0;
+          duplicates += (data && data.duplicates) || 0;
+          dropped += (data && data.dropped) || 0;
+          lastSave = data;
         }
-      } catch { /* skip a failed hand, keep importing the rest */ }
+      } catch { /* skip a failed batch, keep importing the rest */ }
     }
     await refreshHistory();
     refreshPlan();
     noteLimit(lastSave);
     setShowHistory(true);
-    flashImport(`${saved} hand${saved === 1 ? '' : 's'} added to history`);
+    flashImport(importResult(saved, duplicates, dropped));
   }
 
   useEffect(() => {
@@ -943,7 +974,7 @@ export default function App() {
   const sharedOverlays = (
     <>
       <ShareModal open={showShare} onClose={() => setShowShare(false)} url={shareUrl} short={shareShort} />
-      <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} onConfirm={onImportConfirm} />
+      <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} onConfirm={onImportConfirm} maxHands={importCap} />
       <UpgradePrompt
         open={limitPrompt}
         cap={plan.saveCap}
@@ -1271,7 +1302,7 @@ function UserChip({ user, plan, onSignOut, onOpenHistory, onOpenShare, onOpenUpl
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 16V4" /><path d="M7 9l5-5 5 5" /><path d="M5 16v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" />
               </svg>
-              Import PokerNow log
+              Import hand history
             </button>
           )}
           {onOpenHistory && (

@@ -378,7 +378,7 @@ function VillainModel({ exploit, setExploit, pro, signedIn, opponents, openPlans
             <Menu label="Villain tendencies" value={src.kind === 'custom' ? 'custom' : 'opp:' + src.name} options={options} onChange={pick} />
             {opponents.loading && <span className="sv-field-hint">Loading your imports…</span>}
             {!opponents.loading && opponents.error && <span className="sv-field-hint">{opponents.error}</span>}
-            {!opponents.loading && !opponents.error && opponents.loaded && list.length === 0 && <span className="sv-field-hint">Import PokerNow hands to model real opponents.</span>}
+            {!opponents.loading && !opponents.error && opponents.loaded && list.length === 0 && <span className="sv-field-hint">Import hands to model real opponents.</span>}
             {newer && <span className="sv-field-hint">{plural(newer.hands - src.obs.hands, 'newer hand', 'newer hands')} imported since. Pick {src.name} again to use them.</span>}
           </div>
           <div className="sv-tend-list">

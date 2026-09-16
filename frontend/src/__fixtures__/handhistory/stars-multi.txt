@@ -1,0 +1,407 @@
+PokerStars Game #109673992001:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:42:52 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #1 is the button
+Seat 1: nina ($1241 in chips) 
+Seat 2: lena ($1983 in chips) 
+Seat 4: wes ($1000 in chips) 
+Seat 5: uri ($1000 in chips) 
+Seat 6: milo ($1831.49 in chips) 
+Seat 7: vera ($1000 in chips) 
+Seat 8: omar ($1613.51 in chips) 
+lena: posts small blind $5
+wes: posts big blind $10
+*** HOLE CARDS ***
+uri: raises $16 to $26
+milo: folds 
+vera: folds 
+omar: folds 
+nina: folds 
+lena: folds 
+wes: folds 
+Uncalled bet ($16) returned to uri
+uri collected $25 from pot
+uri: doesn't show hand 
+*** SUMMARY ***
+Total pot $25 | Rake $0 
+Seat 1: nina (button) folded before Flop (didn't bet)
+Seat 2: lena (small blind) folded before Flop
+Seat 4: wes (big blind) folded before Flop
+Seat 5: uri collected ($25)
+Seat 6: milo folded before Flop (didn't bet)
+Seat 7: vera folded before Flop (didn't bet)
+Seat 8: omar folded before Flop (didn't bet)
+
+
+PokerStars Game #109674128046:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:52:24 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #2 is the button
+Seat 1: nina ($1083 in chips) 
+Seat 2: lena ($2140 in chips) 
+Seat 4: wes ($1000 in chips) 
+Seat 5: uri ($1015 in chips) 
+Seat 6: milo ($1920.57 in chips) 
+Seat 7: vera ($1015 in chips) 
+Seat 8: omar ($1583.51 in chips) 
+YurNas will be allowed to play after the button
+wes: posts small blind $5
+uri: posts big blind $10
+*** HOLE CARDS ***
+milo: folds 
+vera: folds 
+omar: folds 
+nina: folds 
+lena: raises $15 to $25
+wes: raises $60 to $85
+uri: folds 
+lena: calls $60
+*** FLOP *** [Qs 8h 7d]
+wes: checks 
+lena: checks 
+*** TURN *** [Qs 8h 7d] [9d]
+wes: checks 
+lena: bets $90
+wes: calls $90
+*** RIVER *** [Qs 8h 7d 9d] [2c]
+wes: checks 
+lena: checks 
+*** SHOW DOWN ***
+wes: shows [8s Ts] (a pair of Eights)
+lena: mucks hand 
+wes collected $357 from pot
+*** SUMMARY ***
+Total pot $360 | Rake $3 
+Board [Qs 8h 7d 9d 2c]
+Seat 1: nina folded before Flop (didn't bet)
+Seat 2: lena (button) mucked
+Seat 4: wes (small blind) showed [8s Ts] and won ($357) with a pair of Eights
+Seat 5: uri (big blind) folded before Flop
+Seat 6: milo folded before Flop (didn't bet)
+Seat 7: vera folded before Flop (didn't bet)
+Seat 8: omar folded before Flop (didn't bet)
+
+
+PokerStars Game #109674148786:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:53:51 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #4 is the button
+Seat 1: nina ($1083 in chips) 
+Seat 2: lena ($1965 in chips) 
+Seat 4: wes ($1182 in chips) 
+Seat 5: uri ($1005 in chips) 
+Seat 6: milo ($1920.57 in chips) 
+Seat 7: vera ($1015 in chips) 
+Seat 8: omar ($1583.51 in chips) 
+uri: posts small blind $5
+milo: posts big blind $10
+YurNas: sits out 
+*** HOLE CARDS ***
+vera: folds 
+omar: folds 
+nina: folds 
+lena: folds 
+wes: raises $10 to $20
+uri: folds 
+milo: calls $10
+*** FLOP *** [3h As Ts]
+milo: checks 
+wes: checks 
+*** TURN *** [3h As Ts] [Qc]
+milo: bets $30
+wes: folds 
+Uncalled bet ($30) returned to milo
+milo collected $42.98 from pot
+*** SUMMARY ***
+Total pot $45 | Rake $2.02 
+Board [3h As Ts Qc]
+Seat 1: nina folded before Flop (didn't bet)
+Seat 2: lena folded before Flop (didn't bet)
+Seat 4: wes (button) folded on the Turn
+Seat 5: uri (small blind) folded before Flop
+Seat 6: milo (big blind) collected ($42.98)
+Seat 7: vera folded before Flop (didn't bet)
+Seat 8: omar folded before Flop (didn't bet)
+
+
+PokerStars Game #109673533027:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:11:20 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #4 is the button
+Seat 1: nina ($1151.30 in chips) 
+Seat 2: lena ($1695 in chips) 
+Seat 3: sam ($1048.82 in chips) 
+Seat 4: omar ($1642 in chips) 
+Seat 5: rosa ($620.40 in chips) 
+Seat 6: milo ($1693.92 in chips) 
+Seat 7: tess ($719.36 in chips) 
+Seat 8: pia ($932 in chips) 
+Seat 9: quinn ($1000 in chips) 
+rosa: posts small blind $5
+milo: posts big blind $10
+*** HOLE CARDS ***
+tess: raises $20 to $30
+pia: folds 
+quinn: folds 
+nina: folds 
+lena: folds 
+sam: folds 
+omar: folds 
+rosa: folds 
+milo: calls $20
+*** FLOP *** [5c 7c 7d]
+milo: checks 
+tess: bets $50
+milo: raises $50 to $100
+tess: calls $50
+*** TURN *** [5c 7c 7d] [Jd]
+milo: bets $150
+tess: calls $150
+*** RIVER *** [5c 7c 7d Jd] [Jc]
+milo: checks 
+tess: checks 
+*** SHOW DOWN ***
+milo: shows [7h 6h] (a full house, Sevens full of Jacks)
+tess: mucks hand 
+milo collected $562 from pot
+*** SUMMARY ***
+Total pot $565 | Rake $3 
+Board [5c 7c 7d Jd Jc]
+Seat 1: nina folded before Flop (didn't bet)
+Seat 2: lena folded before Flop (didn't bet)
+Seat 3: sam folded before Flop (didn't bet)
+Seat 4: omar (button) folded before Flop (didn't bet)
+Seat 5: rosa (small blind) folded before Flop
+Seat 6: milo (big blind) showed [7h 6h] and won ($562) with a full house, Sevens full of Jacks
+Seat 7: tess mucked
+Seat 8: pia folded before Flop (didn't bet)
+Seat 9: quinn folded before Flop (didn't bet)
+
+
+PokerStars Game #109673554313:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:12:46 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #5 is the button
+Seat 1: nina ($1151.30 in chips) 
+Seat 2: lena ($1695 in chips) 
+Seat 3: sam ($1048.82 in chips) 
+Seat 4: omar ($1642 in chips) 
+Seat 5: rosa ($615.40 in chips) 
+Seat 6: milo ($1975.92 in chips) 
+Seat 7: tess ($439.36 in chips) 
+Seat 8: pia ($932 in chips) 
+Seat 9: quinn ($1000 in chips) 
+milo: posts small blind $5
+tess: posts big blind $10
+*** HOLE CARDS ***
+pia: folds 
+quinn: folds 
+nina: folds 
+lena: folds 
+sam: folds 
+omar: folds 
+rosa: folds 
+milo: folds 
+Uncalled bet ($5) returned to tess
+tess collected $10 from pot
+*** SUMMARY ***
+Total pot $10 | Rake $0 
+Seat 1: nina folded before Flop (didn't bet)
+Seat 2: lena folded before Flop (didn't bet)
+Seat 3: sam folded before Flop (didn't bet)
+Seat 4: omar folded before Flop (didn't bet)
+Seat 5: rosa (button) folded before Flop (didn't bet)
+Seat 6: milo (small blind) folded before Flop
+Seat 7: tess (big blind) collected ($10)
+Seat 8: pia folded before Flop (didn't bet)
+Seat 9: quinn folded before Flop (didn't bet)
+
+
+PokerStars Game #109673561342:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:13:14 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #6 is the button
+Seat 1: nina ($1151.30 in chips) 
+Seat 2: lena ($1695 in chips) 
+Seat 3: sam ($1048.82 in chips) 
+Seat 4: omar ($1642 in chips) 
+Seat 5: rosa ($615.40 in chips) 
+Seat 6: milo ($1970.92 in chips) 
+Seat 7: tess ($444.36 in chips) 
+Seat 8: pia ($932 in chips) 
+Seat 9: quinn ($1000 in chips) 
+tess: posts small blind $5
+pia: posts big blind $10
+*** HOLE CARDS ***
+quinn: folds 
+nina: folds 
+lena: folds 
+sam: folds 
+omar: raises $20 to $30
+rosa: folds 
+milo: folds 
+tess: folds 
+pia: folds 
+Uncalled bet ($20) returned to omar
+omar collected $25 from pot
+omar: doesn't show hand 
+*** SUMMARY ***
+Total pot $25 | Rake $0 
+Seat 1: nina folded before Flop (didn't bet)
+Seat 2: lena folded before Flop (didn't bet)
+Seat 3: sam folded before Flop (didn't bet)
+Seat 4: omar collected ($25)
+Seat 5: rosa folded before Flop (didn't bet)
+Seat 6: milo (button) folded before Flop (didn't bet)
+Seat 7: tess (small blind) folded before Flop
+Seat 8: pia (big blind) folded before Flop
+Seat 9: quinn folded before Flop (didn't bet)
+
+
+PokerStars Game #109673572373:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:13:59 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #7 is the button
+Seat 1: nina ($1151.30 in chips) 
+Seat 2: lena ($1695 in chips) 
+Seat 3: sam ($1048.82 in chips) 
+Seat 4: omar ($1657 in chips) 
+Seat 5: rosa ($615.40 in chips) 
+Seat 6: milo ($1970.92 in chips) 
+Seat 7: tess ($439.36 in chips) 
+Seat 8: pia ($922 in chips) 
+Seat 9: quinn ($1000 in chips) 
+pia: posts small blind $5
+quinn: posts big blind $10
+*** HOLE CARDS ***
+nina: folds 
+lena: folds 
+sam: folds 
+omar: folds 
+rosa: raises $20 to $30
+milo: calls $30
+tess: folds 
+pia: folds 
+quinn: folds 
+*** FLOP *** [Qs 2s 6s]
+rosa: bets $50
+milo: calls $50
+*** TURN *** [Qs 2s 6s] [2h]
+tess leaves the table
+rosa: checks 
+milo: checks 
+*** RIVER *** [Qs 2s 6s 2h] [4s]
+rosa: checks 
+milo: bets $70
+rosa: folds 
+Uncalled bet ($70) returned to milo
+milo collected $172 from pot
+*** SUMMARY ***
+Total pot $175 | Rake $3 
+Board [Qs 2s 6s 2h 4s]
+Seat 1: nina folded before Flop (didn't bet)
+Seat 2: lena folded before Flop (didn't bet)
+Seat 3: sam folded before Flop (didn't bet)
+Seat 4: omar folded before Flop (didn't bet)
+Seat 5: rosa folded on the River
+Seat 6: milo collected ($172)
+Seat 7: tess (button) folded before Flop (didn't bet)
+Seat 8: pia (small blind) folded before Flop
+Seat 9: quinn (big blind) folded before Flop
+
+
+PokerStars Game #109673589735:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:15:09 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #8 is the button
+Seat 1: nina ($1151.30 in chips) 
+Seat 2: lena ($1695 in chips) 
+Seat 3: sam ($1048.82 in chips) 
+Seat 4: omar ($1657 in chips) 
+Seat 5: rosa ($535.40 in chips) 
+Seat 6: milo ($2062.92 in chips) 
+Seat 8: pia ($917 in chips) 
+Seat 9: quinn ($1000 in chips) 
+quinn: posts small blind $5
+nina: posts big blind $10
+*** HOLE CARDS ***
+lena: folds 
+friendzdrt joins the table at seat #7 
+sam: folds 
+omar: folds 
+rosa: folds 
+milo: folds 
+pia: raises $10 to $20
+quinn: folds 
+nina: folds 
+Uncalled bet ($10) returned to pia
+pia collected $25 from pot
+*** SUMMARY ***
+Total pot $25 | Rake $0 
+Seat 1: nina (big blind) folded before Flop
+Seat 2: lena folded before Flop (didn't bet)
+Seat 3: sam folded before Flop (didn't bet)
+Seat 4: omar folded before Flop (didn't bet)
+Seat 5: rosa folded before Flop (didn't bet)
+Seat 6: milo folded before Flop (didn't bet)
+Seat 8: pia (button) collected ($25)
+Seat 9: quinn (small blind) folded before Flop
+
+
+PokerStars Game #109673602306:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:16:00 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #9 is the button
+Seat 1: nina ($1141.30 in chips) 
+Seat 2: lena ($1695 in chips) 
+Seat 3: sam ($1048.82 in chips) 
+Seat 4: omar ($1657 in chips) 
+Seat 5: rosa ($535.40 in chips) 
+Seat 6: milo ($2062.92 in chips) 
+Seat 8: pia ($932 in chips) 
+Seat 9: quinn ($1000 in chips) 
+nina: posts small blind $5
+lena: posts big blind $10
+friendzdrt: sits out 
+*** HOLE CARDS ***
+sam: folds 
+omar: folds 
+rosa: folds 
+milo: raises $15 to $25
+pia: calls $25
+quinn: folds 
+nina: folds 
+lena: folds 
+*** FLOP *** [2s Js 4c]
+milo: bets $40
+pia: folds 
+Uncalled bet ($40) returned to milo
+milo collected $62.08 from pot
+*** SUMMARY ***
+Total pot $65 | Rake $2.92 
+Board [2s Js 4c]
+Seat 1: nina (small blind) folded before Flop
+Seat 2: lena (big blind) folded before Flop
+Seat 3: sam folded before Flop (didn't bet)
+Seat 4: omar folded before Flop (didn't bet)
+Seat 5: rosa folded before Flop (didn't bet)
+Seat 6: milo collected ($62.08)
+Seat 8: pia folded on the Flop
+Seat 9: quinn (button) folded before Flop (didn't bet)
+
+
+PokerStars Game #109673610680:  Hold'em No Limit ($5/$10 USD) - 2014/01/06 1:16:34 ET
+Table 'Hveen II 40-100 bb' 9-max Seat #1 is the button
+Seat 1: nina ($1136.30 in chips) 
+Seat 2: lena ($1685 in chips) 
+Seat 4: omar ($1657 in chips) 
+Seat 5: rosa ($535.40 in chips) 
+Seat 6: milo ($2100 in chips) 
+Seat 8: pia ($907 in chips) 
+Seat 9: quinn ($1000 in chips) 
+lena: posts small blind $5
+sam: is sitting out 
+omar: posts big blind $10
+friendzdrt: sits out 
+*** HOLE CARDS ***
+rosa: raises $20 to $30
+milo: folds 
+pia: folds 
+quinn: folds 
+nina: folds 
+lena: folds 
+omar: folds 
+Uncalled bet ($20) returned to rosa
+rosa collected $25 from pot
+*** SUMMARY ***
+Total pot $25 | Rake $0 
+Seat 1: nina (button) folded before Flop (didn't bet)
+Seat 2: lena (small blind) folded before Flop
+Seat 4: omar (big blind) folded before Flop
+Seat 5: rosa collected ($25)
+Seat 6: milo folded before Flop (didn't bet)
+Seat 8: pia folded before Flop (didn't bet)
+Seat 9: quinn folded before Flop (didn't bet)
+

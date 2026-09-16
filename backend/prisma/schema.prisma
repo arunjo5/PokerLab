@@ -77,6 +77,8 @@ model Search {
   createdAt   DateTime @default(now())
   lastAccessedAt DateTime @default(now())
   name        String?
+  handId      String?
+  @@unique([userId, handId])
   @@index([userId, createdAt])
   @@index([userId, favorite, lastAccessedAt])
 }

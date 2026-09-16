@@ -15,7 +15,7 @@ export function freeFeatures(limits = DEFAULT_LIMITS) {
   return [
     'Equity calculator, ranges, pot odds & MDF',
     'Heads-up river solver',
-    'Hand replayer with PokerNow import',
+    'Hand replayer with PokerNow, PokerStars & GGPoker import',
     `Save up to ${fmt(l.saveCap)} hands`,
     `${l.ranges} saved ranges and ${l.solves} saved solves`,
     'Share links',
@@ -28,7 +28,7 @@ export function proFeatures(limits = DEFAULT_LIMITS) {
     `Save up to ${fmt(l.saveCap)} hands`,
     `${l.ranges} saved ranges and ${l.solves} saved solves`,
     `${l.shareLinks} permanent short share links`,
-    'Session stats from your PokerNow imports',
+    'Session stats from your imported hands',
     'Exploit solver against real opponent tendencies',
     'Support PokerLab’s development',
   ];

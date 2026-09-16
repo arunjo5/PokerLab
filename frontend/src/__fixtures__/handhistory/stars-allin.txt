@@ -1,0 +1,39 @@
+PokerStars Game #109688230087:  Hold'em No Limit ($0.05/$0.10 USD) - 2014/01/06 10:23:24 ET
+Table 'Table One' 6-max Seat #3 is the button
+Seat 2: gus ($15 in chips) 
+Seat 3: hana ($12.26 in chips) 
+Seat 4: ivo ($38.74 in chips) 
+Seat 5: jo ($21.06 in chips) 
+Seat 6: kit ($10.21 in chips) 
+ivo: posts small blind $0.05
+jo: posts big blind $0.10
+gus: posts the ante $0.02
+hana: posts the ante $0.02
+ivo: posts the ante $0.02
+jo: posts the ante $0.02
+kit: posts the ante $0.02
+*** HOLE CARDS ***
+kit: folds 
+gus: folds 
+hana: raises $0.20 to $0.30
+ivo: raises $1 to $1.30
+jo: folds 
+hana: calls $1
+*** FLOP *** [5c 4c 4h]
+ivo: bets $2
+hana: raises $8.94 to $10.94 and is all-in
+ivo: calls $8.94
+*** TURN *** [5c 4c 4h] [Qs]
+*** RIVER *** [5c 4c 4h Qs] [Kc]
+*** SHOW DOWN ***
+ivo: shows [Ah Ks] (two pair, Kings and Fours)
+hana: shows [8h 8c] (two pair, Eights and Fours)
+ivo collected $23.57 from pot
+*** SUMMARY ***
+Total pot $24.68 | Rake $1.11 
+Board [5c 4c 4h Qs Kc]
+Seat 2: gus folded before Flop (didn't bet)
+Seat 3: hana (button) showed [8h 8c] and lost with two pair, Eights and Fours
+Seat 4: ivo (small blind) showed [Ah Ks] and won ($23.57) with two pair, Kings and Fours
+Seat 5: jo (big blind) folded before Flop
+Seat 6: kit folded before Flop (didn't bet)

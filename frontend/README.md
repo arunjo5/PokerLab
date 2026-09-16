@@ -1,6 +1,6 @@
 # PokerLab — Frontend
 
-Texas Hold'em analytics: Monte Carlo equity, range analysis, pot odds/MDF, a heads-up river CFR solver (GTO or exploit mode against imported opponent tendencies), and a hand replayer.
+Texas Hold'em analytics: Monte Carlo equity, range analysis, pot odds/MDF, a heads-up river CFR solver (GTO or exploit mode against imported opponent tendencies), and a hand replayer fed by PokerNow, PokerStars and GGPoker hand histories.
 
 ## Stack
 
@@ -49,6 +49,7 @@ frontend/
     ├── solver.css          solver styles
     ├── pokernowImport.js   parse PokerNow JSON exports into replayable hands
     ├── pokernowCsv.js      parse the PokerNow .csv text log into the same raw hands
+    ├── handHistory.js      parse PokerStars and GGPoker text histories into the same raw hands
     ├── scenario.js         scenario <-> URL state
     ├── shareCodec.js       compact share-link encoding (lz-string)
     ├── replayShare.js      share encoding for replays
@@ -70,6 +71,7 @@ frontend/
     ├── PlansView.jsx       Free vs Pro plans page
     ├── UpgradePrompt.jsx   shown once when a free account fills its history
     ├── ShareModal.jsx      share-link modal
-    ├── UploadModal.jsx     PokerNow log import
+    ├── UploadModal.jsx     hand-history import (PokerNow, PokerStars, GGPoker); hands go up in
+    │                       batches and are deduped by the site's hand id
     └── AuthContext.jsx     session, plan, and billing state from the backend
 ```

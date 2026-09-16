@@ -99,7 +99,8 @@ const pnLog = () => ({
   playerId: 'p_alice',
   hands: [{
     number: '1', gameType: 'th', dealerSeat: 0, smallBlind: 50, bigBlind: 100,
-    players: [pnPlayer(0, 'p_alice', 'alice'), pnPlayer(1, 'p_bob', 'bob')], events: [],
+    players: [pnPlayer(0, 'p_alice', 'alice'), pnPlayer(1, 'p_bob', 'bob')],
+    events: [{ payload: { type: 10, seat: 0, value: 150 } }],
   }],
 });
 
@@ -618,8 +619,8 @@ describe('save-limit prompt', () => {
     });
     renderApp();
     fireEvent.click(await findChip());
-    fireEvent.click(screen.getByRole('button', { name: 'Import PokerNow log' }));
-    const dialog = screen.getByRole('dialog', { name: 'Upload PokerNow log' });
+    fireEvent.click(screen.getByRole('button', { name: 'Import hand history' }));
+    const dialog = screen.getByRole('dialog', { name: 'Import hand history' });
     const file = new File([JSON.stringify(pnLog())], 'log.json', { type: 'application/json' });
     fireEvent.change(dialog.querySelector('input[type="file"]'), { target: { files: [file] } });
     fireEvent.click((await screen.findByText('alice')).closest('button'));

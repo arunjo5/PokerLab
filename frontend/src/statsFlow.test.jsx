@@ -51,7 +51,8 @@ const toastText = () => document.querySelector('.shared-toast')?.textContent;
 const pnPlayer = (seat, id, name) => ({ seat, id, name, stack: 10000 });
 const pnHand = (n, players) => ({
   number: String(n), gameType: 'th', dealerSeat: players[0].seat,
-  smallBlind: 50, bigBlind: 100, players, events: [],
+  smallBlind: 50, bigBlind: 100, players,
+  events: [{ payload: { type: 10, seat: players[0].seat, value: 150 } }],
 });
 const PN_AB = () => [pnPlayer(0, 'p_alice', 'alice'), pnPlayer(1, 'p_bob', 'bob')];
 const pnAbLog = (nums) => ({ playerId: 'p_alice', hands: nums.map((n) => pnHand(n, PN_AB())) });
@@ -70,8 +71,8 @@ const enterHand = (input, v) => {
 // menu -> upload modal -> pick alice -> queue the given hand numbers -> Import
 async function importHands(nums, fileName) {
   fireEvent.click(await findChip());
-  fireEvent.click(screen.getByRole('button', { name: 'Import PokerNow log' }));
-  const dialog = screen.getByRole('dialog', { name: 'Upload PokerNow log' });
+  fireEvent.click(screen.getByRole('button', { name: 'Import hand history' }));
+  const dialog = screen.getByRole('dialog', { name: 'Import hand history' });
   dropPnLog(dialog, pnAbLog(nums), fileName);
   fireEvent.click((await screen.findByText('alice')).closest('button'));
   enterHand(screen.getByPlaceholderText(/Type a hand number/), nums.join(' '));
@@ -96,7 +97,7 @@ describe('import pipeline carries the hero seat and the file name', () => {
   const spreadHand = () => ({
     number: '1', gameType: 'th', dealerSeat: 2, smallBlind: 50, bigBlind: 100,
     players: [pnPlayer(0, 'p_alice', 'alice'), pnPlayer(2, 'p_bob', 'bob'), pnPlayer(5, 'p_carol', 'carol')],
-    events: [],
+    events: [{ payload: { type: 10, seat: 2, value: 150 } }],
   });
 
   it('records the chosen player at their seat index after the button reorder', () => {
@@ -137,7 +138,7 @@ describe('an import tags every hand with one session and its own stats', () => {
     mockFetch({
       '/api/auth/session': ok({ user: nextUser() }),
       '/api/searches': (u, o) => {
-        if (((o && o.method) || 'GET') === 'POST') { posts.push(JSON.parse(o.body)); return ok({ search: { id: 'n' + posts.length } }); }
+        if (((o && o.method) || 'GET') === 'POST') { const b = JSON.parse(o.body); posts.push(...b.items); return ok({ saved: b.items.length, duplicates: 0 }); }
         return ok({ searches: [] });
       },
     });
@@ -155,7 +156,7 @@ describe('an import tags every hand with one session and its own stats', () => {
     expect(new Date(sessions[0].at).toISOString()).toBe(sessions[0].at);
 
     for (const p of posts) {
-      expect(p.replay.stats).toMatchObject({ v: 2, hero: 0, pos: 'BTN', players: 2, bb: 100, cents: true, net: -50 });
+      expect(p.replay.stats).toMatchObject({ v: 2, hero: 0, pos: 'BTN', players: 2, bb: 100, cents: true, net: 100 });
       expect(p.replay.setup).toBeTruthy(); // the replay itself still rides along
     }
   });
@@ -165,7 +166,7 @@ describe('an import tags every hand with one session and its own stats', () => {
     mockFetch({
       '/api/auth/session': ok({ user: nextUser() }),
       '/api/searches': (u, o) => {
-        if (((o && o.method) || 'GET') === 'POST') { posts.push(JSON.parse(o.body)); return ok({ search: { id: 'n1' } }); }
+        if (((o && o.method) || 'GET') === 'POST') { const b = JSON.parse(o.body); posts.push(...b.items); return ok({ saved: b.items.length, duplicates: 0 }); }
         return ok({ searches: [] });
       },
     });
@@ -269,6 +270,6 @@ describe('the stats page inside the app', () => {
     renderApp();
     await findChip();
     fireEvent.click(screen.getByRole('button', { name: /Pro/ }));
-    expect(await screen.findByText('Session stats from your PokerNow imports')).toBeInTheDocument();
+    expect(await screen.findByText('Session stats from your imported hands')).toBeInTheDocument();
   });
 });
