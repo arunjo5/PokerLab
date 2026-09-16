@@ -51,10 +51,14 @@ function initState(setup) {
     aggressor: null,
     handOver: false,
   };
+  // setup.antes (per seat) covers a big-blind ante; setup.ante is the whole table
+  const antes = Array.isArray(setup.antes) && setup.antes.length ? setup.antes : null;
   const ante = Number(setup.ante) || 0;
-  if (ante > 0) {
+  if (antes || ante > 0) {
     for (let i = 0; i < N; i++) {
-      const a = Math.min(ante, st.stacks[i]);
+      const want = antes ? Number(antes[i]) || 0 : ante;
+      if (want <= 0) continue;
+      const a = Math.min(want, st.stacks[i]);
       st.stacks[i] -= a; st.committed[i] += a; st.pot += a;
       if (st.stacks[i] === 0) st.allin[i] = true;
     }
@@ -72,9 +76,9 @@ function initState(setup) {
 // Does this seat still owe an action this street?
 function needsAction(st, seat) {
   if (st.folded[seat] || st.allin[seat]) return false;
-  if (!st.acted[seat]) return true;
-  if (st.streetContrib[seat] < st.toCall) return true;
-  return false;
+  if (st.streetContrib[seat] < st.toCall) return true; // owes chips, so must answer
+  if (st.acted[seat]) return false;
+  return liveActorCount(st) > 1; // last player with chips has nobody to act against
 }
 
 function findNext(st, fromSeat) {
@@ -83,6 +87,24 @@ function findNext(st, fromSeat) {
     if (needsAction(st, cand)) return cand;
   }
   return null;
+}
+
+// whatever the top street contribution had over the next one was never called:
+// everyone else folded or was all-in for less, so it goes back
+function settleUncalled(st) {
+  let top = -1, high = 0, second = 0;
+  for (let i = 0; i < st.N; i++) {
+    const c = st.streetContrib[i];
+    if (c > high) { second = high; high = c; top = i; }
+    else if (c > second) second = c;
+  }
+  const refund = high - second;
+  if (top < 0 || refund <= 0 || st.folded[top]) return;
+  st.stacks[top] += refund;
+  st.streetContrib[top] -= refund;
+  st.committed[top] -= refund;
+  st.pot -= refund;
+  if (st.stacks[top] > 0) st.allin[top] = false;
 }
 
 function activeCount(st) {
@@ -166,25 +188,14 @@ function applyAction(st, action) {
   }
 
   if (activeCount(st) <= 1) {
-    // return the uncalled portion of the last bet to its bettor
-    let w = -1;
-    for (let i = 0; i < st.N; i++) if (!st.folded[i]) w = i;
-    if (w >= 0) {
-      let high = 0;
-      for (let i = 0; i < st.N; i++) if (i !== w && st.streetContrib[i] > high) high = st.streetContrib[i];
-      const refund = st.streetContrib[w] - high;
-      if (refund > 0) {
-        st.stacks[w] += refund;
-        st.streetContrib[w] -= refund;
-        st.committed[w] -= refund;
-        st.pot -= refund;
-      }
-    }
+    settleUncalled(st);
     st.handOver = true;
     st.nextSeat = null;
     return;
   }
   st.nextSeat = findNext(st, seat);
+  // round closed: a shove nobody could match gets its excess back
+  if (st.nextSeat == null) settleUncalled(st);
 }
 
 function streetComplete(st) {

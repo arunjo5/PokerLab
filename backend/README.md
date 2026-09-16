@@ -60,6 +60,7 @@ src/
 │   ├── api/auth/signup/          username/password signup
 │   ├── api/searches/             saved-hand list + create (LRU-capped)
 │   ├── api/searches/[id]/        favorite, rename, touch, or delete one
+│   ├── api/searches/import/     bulk hand-history import, deduped by the site's hand id
 │   ├── api/billing/              status, Stripe Checkout + Customer Portal sessions
 │   ├── api/webhooks/stripe/      signed webhook that mirrors subscriptions onto users
 │   ├── api/share/                Pro short links: create + list, resolve/rename/delete one
@@ -92,6 +93,7 @@ src/
 - `GET /api/searches/[id]` — the full saved hand
 - `DELETE /api/searches` — delete every non-favorite
 - `POST /api/searches` — save a hand (prunes least-recently-used non-favorites past the per-user cap)
+- `POST /api/searches/import` — save up to 25 hands in one request; `(userId, handId)` is unique, so re-importing a log adds nothing and the reply reports `{ saved, duplicates }`
 - `PATCH /api/searches/[id]` — toggle favorite, rename, or touch (mark recently used)
 - `DELETE /api/searches/[id]` — delete a hand
 - `GET /api/billing/status` — current plan, save cap, and usage

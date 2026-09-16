@@ -194,7 +194,7 @@ export function sessionKey(item) {
 export function cleanSessionLabel(label) {
   if (!label) return null;
   const s = String(label)
-    .replace(/\.(json|csv)$/i, '')
+    .replace(/\.(json|csv|txt)$/i, '')
     .replace(/^poker[_ -]?now[_ -]?(log|hand[_ -]?history)?[_ -]*/i, '')
     .replace(/[_-]+/g, ' ')
     .trim();
@@ -267,6 +267,6 @@ export function aggregate(items) {
 
 // "Sat Sep 6 · cash.json" style label for an import batch
 export function sessionLabel(fileName) {
-  const base = String(fileName || '').replace(/\.(json|csv)$/i, '').trim();
+  const base = String(fileName || '').replace(/\.(json|csv|txt)$/i, '').trim();
   return base || null;
 }

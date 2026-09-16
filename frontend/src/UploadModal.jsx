@@ -1,15 +1,16 @@
-// "Upload PokerNow Log" modal. Flow: drop file -> pick which player you are ->
-// choose from the hands you were dealt into. onConfirm(selectedHands) fires on Import.
+// "Import hand history" modal — PokerNow, PokerStars and GGPoker. Flow: drop file ->
+// pick which player you are -> choose from your hands. onConfirm(selectedHands) fires on Import.
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { CardChip } from './Cards.jsx';
 import { parsePokerNowLog, convertHandsFor, convertAllHands } from './pokernowImport.js';
 import { parsePokerNowCsv, isPokerNowCsv } from './pokernowCsv.js';
+import { parseHandHistory, isHandHistoryText } from './handHistory.js';
 
-const MAX_HANDS = 50;
+const DEFAULT_MAX_HANDS = 50;
 const MAX_BYTES = 10 * 1024 * 1024; // generous — real logs are well under 1 MB
 const ALL_PLAYERS = '__all__'; // heroId sentinel: import without filtering to one player
 
-function UploadModal({ open, onClose, onConfirm }) {
+function UploadModal({ open, onClose, onConfirm, maxHands = DEFAULT_MAX_HANDS }) {
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState(null);
   const [fileError, setFileError] = useState(null);
@@ -34,12 +35,15 @@ function UploadModal({ open, onClose, onConfirm }) {
   }, [open]);
 
   const players = parsed?.players || [];
-  const hands = useMemo(() => {
+  const converted = useMemo(() => {
     if (!parsed || heroId == null) return [];
     return heroId === ALL_PLAYERS
       ? convertAllHands(parsed.rawHands, parsed.exportHeroId)
       : convertHandsFor(parsed.rawHands, heroId);
   }, [parsed, heroId]);
+  // a hand whose chips don't reconcile was read wrong; importing it would skew the stats
+  const hands = useMemo(() => converted.filter((h) => h.valid), [converted]);
+  const skipped = converted.length - hands.length;
   const totalHands = useMemo(
     () => (parsed
       ? parsed.rawHands.filter((h) => (!h.gameType || h.gameType === 'th') && Array.isArray(h.players) && h.players.length >= 2).length
@@ -58,7 +62,7 @@ function UploadModal({ open, onClose, onConfirm }) {
         : 'parsed';
   const minNum = hands.length ? Math.min(...hands.map((h) => h.number)) : 0;
   const maxNum = hands.length ? Math.max(...hands.map((h) => h.number)) : 0;
-  const atCap = selected.length >= MAX_HANDS;
+  const atCap = selected.length >= maxHands;
 
   const handleFile = useCallback((file) => {
     if (!file) return;
@@ -67,18 +71,18 @@ function UploadModal({ open, onClose, onConfirm }) {
     setEntryError(null);
     const name = file.name || 'log';
     const lower = name.toLowerCase();
-    const known = lower.endsWith('.json') || lower.endsWith('.csv') || file.type === 'application/json' || file.type === 'text/csv';
+    const known = /\.(json|csv|txt)$/.test(lower) || ['application/json', 'text/csv', 'text/plain'].includes(file.type);
     if (!known) {
       const ext = name.includes('.') ? name.split('.').pop().toUpperCase() : 'unknown';
       setParsed(null);
       setFileName(name);
-      setFileError(`That's a .${ext} file — PokerNow logs are .json or .csv. Drop one of those instead.`);
+      setFileError(`That's a .${ext} file — hand histories are .json, .csv or .txt. Drop one of those instead.`);
       return;
     }
     if (file.size > MAX_BYTES) {
       setParsed(null);
       setFileName(name);
-      setFileError("That file is unexpectedly large for a PokerNow log. Make sure it's a hand-log export.");
+      setFileError("That file is unexpectedly large for a hand history. Make sure it's a hand-log export.");
       return;
     }
     const reader = new FileReader();
@@ -86,24 +90,24 @@ function UploadModal({ open, onClose, onConfirm }) {
       let result;
       const text = String(reader.result);
       try {
-        // the .csv download and the .json export carry the same hands; a .csv
-        // that fails the sniff still gets the csv reader's error, not json's
-        const csv = isPokerNowCsv(text) || lower.endsWith('.csv') || file.type === 'text/csv';
-        result = csv ? parsePokerNowCsv(text) : parsePokerNowLog(text);
+        // every reader returns the same hands, so the format is picked by content
+        if (isHandHistoryText(text)) result = parseHandHistory(text);
+        else if (isPokerNowCsv(text) || /\.(csv|txt)$/.test(lower) || file.type === 'text/csv') result = parsePokerNowCsv(text);
+        else result = parsePokerNowLog(text);
       } catch (e) {
         setParsed(null);
         setFileName(name);
         setFileError(
           e && e.message === 'NOT_JSON'
-            ? "We couldn't read that file — make sure it's an unedited PokerNow export."
-            : "This doesn't look like a PokerNow log. Export the hand log from PokerNow and try again."
+            ? "We couldn't read that file — make sure it's an unedited export."
+            : "This doesn't look like a hand history. Export the hand log from PokerNow, PokerStars or GGPoker and try again."
         );
         return;
       }
       if (!result || !Array.isArray(result.rawHands)) {
         setParsed(null);
         setFileName(name);
-        setFileError("This doesn't look like a PokerNow log. Export the hand log from PokerNow and try again.");
+        setFileError("This doesn't look like a hand history. Export the hand log from PokerNow, PokerStars or GGPoker and try again.");
         return;
       }
       setFileError(null);
@@ -138,8 +142,20 @@ function UploadModal({ open, onClose, onConfirm }) {
     setInputValue('');
   }
 
+  // "12, 40-60" — plain numbers and inclusive ranges
   function processInput(raw) {
-    const tokens = String(raw).split(/[^0-9]+/).filter(Boolean).map(Number);
+    const tokens = [];
+    for (const part of String(raw).split(/[^0-9-]+/)) {
+      if (!part) continue;
+      const span = /^(\d+)-(\d+)$/.exec(part);
+      if (span) {
+        const lo = Math.min(Number(span[1]), Number(span[2]));
+        const hi = Math.max(Number(span[1]), Number(span[2]));
+        for (let n = lo; n <= hi && tokens.length < 1000; n++) tokens.push(n);
+      } else {
+        for (const d of part.split('-')) if (d) tokens.push(Number(d));
+      }
+    }
     if (tokens.length === 0) {
       if (raw.trim()) setEntryError('Enter a hand number, e.g. ' + (hands[0]?.number ?? 1) + '.');
       return;
@@ -149,7 +165,7 @@ function UploadModal({ open, onClose, onConfirm }) {
     let capHit = false;
     for (const n of tokens) {
       if (working.includes(n)) continue;
-      if (working.length >= MAX_HANDS) { capHit = true; break; }
+      if (working.length >= maxHands) { capHit = true; break; }
       if (!hands.some((h) => h.number === n)) { notFound.push(n); continue; }
       working.push(n);
     }
@@ -158,7 +174,7 @@ function UploadModal({ open, onClose, onConfirm }) {
     if (notFound.length) {
       setEntryError(`Hand${notFound.length > 1 ? 's' : ''} ${notFound.map((x) => '#' + x).join(', ')} not in ${isAll ? 'this log' : `${heroPlayer?.name || 'this player'}'s hands`}.`);
     } else if (capHit) {
-      setEntryError(`You can add up to ${MAX_HANDS} hands.`);
+      setEntryError(`You can add up to ${maxHands} hands.`);
     } else {
       setEntryError(null);
     }
@@ -183,8 +199,8 @@ function UploadModal({ open, onClose, onConfirm }) {
     setEntryError(null);
     setSelected((s) => {
       if (s.includes(n)) return s.filter((x) => x !== n);
-      if (s.length >= MAX_HANDS) {
-        setEntryError(`You can add up to ${MAX_HANDS} hands.`);
+      if (s.length >= maxHands) {
+        setEntryError(`You can add up to ${maxHands} hands.`);
         return s;
       }
       return [...s, n];
@@ -194,10 +210,10 @@ function UploadModal({ open, onClose, onConfirm }) {
   function selectAll() {
     setEntryError(null);
     // most recent first, capped, then shown low-to-high
-    const nums = hands.map((h) => h.number).sort((a, b) => b - a).slice(0, MAX_HANDS).sort((a, b) => a - b);
+    const nums = hands.map((h) => h.number).sort((a, b) => b - a).slice(0, maxHands).sort((a, b) => a - b);
     setSelected(nums);
-    if (hands.length > MAX_HANDS) {
-      setEntryError(`Added the ${MAX_HANDS} most recent of ${hands.length} hands (max ${MAX_HANDS}).`);
+    if (hands.length > maxHands) {
+      setEntryError(`Added the ${maxHands} most recent of ${hands.length} hands (max ${maxHands}).`);
     }
   }
 
@@ -226,13 +242,13 @@ function UploadModal({ open, onClose, onConfirm }) {
 
   return (
     <div className="picker-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="share-modal upload-modal" role="dialog" aria-label="Upload PokerNow log">
+      <div className="share-modal upload-modal" role="dialog" aria-label="Import hand history">
         <div className="share-head">
           <div>
-            <div className="auth-title">Upload PokerNow Log</div>
+            <div className="auth-title">Import hand history</div>
             <div className="auth-sub">
-              Drop a PokerNow export, choose which player you are, then pick the
-              hands to add to your history.
+              Drop a log from PokerNow, PokerStars or GGPoker, choose which player
+              you are, then pick the hands to add to your history.
             </div>
           </div>
           <button className="modal-x" onClick={onClose} aria-label="Close">×</button>
@@ -270,7 +286,7 @@ function UploadModal({ open, onClose, onConfirm }) {
                 <div className="upload-empty-title">No hands found in this file</div>
                 <div className="upload-empty-sub">
                   We read the file fine, but it didn't contain any complete hands.
-                  Make sure you exported the full hand log from PokerNow.
+                  Make sure you exported the full hand log.
                 </div>
               </div>
               <div className="upload-foot">
@@ -355,7 +371,7 @@ function UploadModal({ open, onClose, onConfirm }) {
 
               <div className="upload-label">
                 <span>Hands to import</span>
-                <span className={'count' + (atCap ? ' at-cap' : '')}>{selected.length} / {MAX_HANDS}</span>
+                <span className={'count' + (atCap ? ' at-cap' : '')}>{selected.length} / {maxHands}</span>
               </div>
 
               <div className={'upload-entry' + (atCap ? ' is-full' : '')} onClick={() => numInputRef.current?.focus()}>
@@ -374,10 +390,10 @@ function UploadModal({ open, onClose, onConfirm }) {
                   disabled={atCap}
                   placeholder={
                     selected.length === 0
-                      ? 'Type a hand number, e.g. 183, 80'
-                      : atCap ? `Maximum ${MAX_HANDS} reached` : 'Add another…'
+                      ? 'Type a hand number or range, e.g. 12, 40-60'
+                      : atCap ? `Maximum ${maxHands} reached` : 'Add another…'
                   }
-                  onChange={(e) => setInputValue(e.target.value.replace(/[^0-9, ]/g, ''))}
+                  onChange={(e) => setInputValue(e.target.value.replace(/[^0-9,\- ]/g, ''))}
                   onKeyDown={onInputKeyDown}
                   onBlur={() => inputValue.trim() && processInput(inputValue)}
                 />
@@ -392,13 +408,16 @@ function UploadModal({ open, onClose, onConfirm }) {
                 </div>
               ) : (
                 <div className="upload-hint">
-                  Press Enter or comma to add. Don't remember the number? Find it in the list below.
+                  Press Enter or comma to add. A range like 40-60 adds every hand in it.
                 </div>
               )}
 
               <div className="upload-label" style={{ marginTop: 2 }}>
                 <span>{isAll ? 'All hands in this log' : `All of ${heroPlayer?.name}'s hands`}</span>
                 <span className="upload-bulk">
+                  {skipped > 0 && (
+                    <span className="upload-skipped">{skipped} hand{skipped === 1 ? '' : 's'} couldn’t be read</span>
+                  )}
                   <button className="reset-link" onClick={selectAll}>Select all</button>
                   {selected.length > 0 && <button className="reset-link" onClick={clearSelected}>Clear</button>}
                 </span>
@@ -458,12 +477,12 @@ function DropZone({ isDragging, hasError, fileInputRef, onPick, setIsDragging, o
         {isDragging ? 'Drop to upload' : <>Drag a log here or <span className="accent">browse</span></>}
       </div>
       <div className="upload-drop-sub">
-        <span className="mono">.json</span> or <span className="mono">.csv</span>
+        <span className="mono">.json</span>, <span className="mono">.csv</span> or <span className="mono">.txt</span>
       </div>
       <input
         ref={fileInputRef}
         type="file"
-        accept=".json,.csv,application/json,text/csv"
+        accept=".json,.csv,.txt,application/json,text/csv,text/plain"
         style={{ display: 'none' }}
         onChange={(e) => { onPick(e.target.files?.[0]); e.target.value = ''; }}
       />
