@@ -7,7 +7,11 @@
   <img src="pokerlab-solver.png" width="49%" alt="PokerLab heads-up river solver" />
 </p>
 
-PokerLab lets you deal hole cards, assign ranges, and set the board, then computes each player’s equity using a Monte Carlo simulation. It also includes a side panel for calculating pot odds and MDF in the current spot. A heads-up river solver finds the GTO strategy for a single river decision between two ranges using CFR. Pro accounts can also lock the villain to river tendencies observed in their imported hands (bet, fold, and raise rates, shrunk toward GTO on small samples) and solve their best response, with the gain over GTO play and the cost if the villain adapts. You can import hand histories into the replayer from PokerNow (the .json export or the .csv download), PokerStars, and GGPoker, share exact board states or replays, and review past hands from your profile page.
+PokerLab lets you choose each player’s hole cards or range and set the board. It then uses a Monte Carlo simulation to calculate each player’s equity. A side panel helps you work out pot odds and MDF for the current spot, while a heads-up river solver uses CFR to find a GTO strategy for a single river decision between two ranges.
+
+With Pro, you can find the best response to an opponent’s river tendencies based on how often they bet, fold, and raise in your imported hands. With fewer hands, the estimates stay closer to GTO. The solver shows how much you gain over GTO play and what you risk giving up if your opponent adjusts.
+
+You can also import hand histories from PokerNow (.json or .csv), PokerStars, and GGPoker into the replayer, share exact board states or replays, and revisit past hands from your profile page.
 
 ## Architecture
 
@@ -24,7 +28,8 @@ PokerLab lets you deal hole cards, assign ranges, and set the board, then comput
 |              Frontend  ·  Vite + React SPA               |
 |                                                          |
 |     Equity Calculator · Hand Replayer · River Solver     |
-|    Share links · hand-history import · saved history     |
+|    GTO + exploit solves · session stats · share links    |
+|       Hand-history import · saved history · plans        |
 |      Web Workers · Monte Carlo + CFR (client-side)       |
 +----------------------------------------------------------+
                              |
@@ -34,7 +39,8 @@ PokerLab lets you deal hole cards, assign ranges, and set the board, then comput
 |                 Backend  ·  Next.js API                  |
 |                                                          |
 |         NextAuth v5 · Credentials + Google · JWT         |
-|      /api/searches · saved-hand CRUD · rate-limited      |
+|     /api/searches · hands, bulk import, dedupe by id     |
+|   /api/share · /api/ranges · /api/solves · /api/stats    |
 |     /api/billing · Stripe Checkout · webhook-synced      |
 +----------------------------------------------------------+
                              |
@@ -60,4 +66,17 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-See [`frontend/README.md`](./frontend/README.md) and [`backend/README.md`](./backend/README.md) for details, and [`backend/setup.md`](./backend/setup.md) for the auth/DB setup walkthrough.
+The frontend proxies `/api` to the backend on port 3000, so run both to sign in or save hands.
+
+## Tests
+
+```bash
+cd frontend && npm test     # 1,163 tests — engines, solver, import parsers, UI flows
+cd backend  && npm test     # 663 tests — routes, auth gates, plan limits, billing
+```
+
+See [`frontend/README.md`](./frontend/README.md) and [`backend/README.md`](./backend/README.md) for details, and [`backend/setup.md`](./backend/setup.md) for the auth, database, rate-limiting, and deployment walkthrough.
+
+## License
+
+MIT

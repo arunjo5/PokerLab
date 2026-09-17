@@ -6,6 +6,7 @@ Texas Hold'em analytics: Monte Carlo equity, range analysis, pot odds/MDF, a hea
 
 - Vite + React 18 (JavaScript)
 - The poker engine runs in-browser (Monte Carlo in a Web Worker). Accounts, saved hands, and billing talk to the backend over `/api`.
+- Plan limits (save cap, import cap, library caps) come from `/api/billing/status` and are enforced server-side. `DEFAULT_LIMITS` in `AuthContext.jsx` mirrors them only so the plans page can paint before that call returns.
 
 ## Run locally
 
@@ -16,6 +17,13 @@ npm run dev
 ```
 
 Then open http://localhost:5173.
+
+The calculator, replayer and solver work on their own. Everything tied to an account —
+signing in, saved hands, imports, session stats, billing — needs the backend running on
+port 3000, which `vite.config.js` proxies `/api` to. See [`../backend/README.md`](../backend/README.md).
+
+In production the same `/api` path is a Vercel rewrite to the backend deployment, and
+`/s/:code` rewrites to `index.html` so Pro short links resolve inside the SPA.
 
 ## Build for production
 

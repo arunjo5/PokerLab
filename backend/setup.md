@@ -2,9 +2,10 @@
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 18.17+ (Next 14's minimum)
 - A PostgreSQL database (e.g. Neon)
 - A Google Cloud project — only if you want Google sign-in
+- An Upstash Redis database — only if you want real rate limiting
 - A Stripe account — only if you want the paid Pro plan
 
 ## 1. Install
@@ -29,7 +30,11 @@ AUTH_URL="http://localhost:3000"   # your domain in production
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
-# Pro plan via Stripe (optional — see section 6)
+# Rate limiting (optional — see section 6)
+UPSTASH_REDIS_REST_URL=""
+UPSTASH_REDIS_REST_TOKEN=""
+
+# Pro plan via Stripe (optional — see section 7)
 STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
 STRIPE_PRICE_MONTHLY="price_..."
@@ -64,9 +69,29 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## 6. Stripe billing (optional)
+## 6. Rate limiting (optional)
 
-The Pro plan is hidden in the UI until `STRIPE_SECRET_KEY` and both price ids are set.
+Every mutating route is rate-limited. With the two `UPSTASH_*` vars unset the limiter
+falls back to an in-memory counter, which is fine locally but only limits a single
+instance — set both in production.
+
+1. Create a Redis database at [Upstash](https://console.upstash.com/).
+2. Copy the REST URL and REST token into `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`.
+
+Two things to know about the free tier:
+
+- **Idle databases are deleted.** A database with no traffic for a couple of weeks is
+  removed, and every rate-limited route then pays a timeout on each request until the
+  limiter's circuit breaker trips. The daily `/api/health` cron in `vercel.json` exists
+  to keep both Upstash and Neon warm.
+- **The limiter degrades rather than fails.** If Upstash is unreachable it times out
+  quickly, logs a warning, and falls back to the in-memory limiter, so requests still
+  succeed.
+
+## 7. Stripe billing (optional)
+
+The Pro plan is hidden in the UI until `STRIPE_SECRET_KEY` and both price ids are set. The
+webhook secret is separate: without it subscriptions never sync back onto users.
 
 1. In the [Stripe Dashboard](https://dashboard.stripe.com/) (test mode) create a product **PokerLab Pro** with two recurring prices: monthly and yearly. Copy each price id into `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_YEARLY`.
 2. **Developers → API keys**: copy the secret key into `STRIPE_SECRET_KEY`.
@@ -86,6 +111,25 @@ Test cards: `4242 4242 4242 4242`, any future expiry, any CVC.
 - **Invalid redirect URI**: the Google redirect URI must match exactly.
 - **Database connection error**: check `DATABASE_URL` and that the database exists.
 - **Prisma client not initialized**: run `npx prisma generate`.
+- **A schema change isn't live**: run `npx prisma db push` against the target database.
+- **New env vars seem ignored on Vercel**: they only apply to builds after they were
+  saved, so redeploy after adding them.
+- **Every signed-in request is slow (seconds, not milliseconds)**: the Upstash database
+  is unreachable or was deleted. Check `/api/health`, then recreate it and update the
+  two `UPSTASH_*` vars.
+
+## Deploying on Vercel
+
+The two halves deploy as separate Vercel projects from the same repository:
+
+- **Backend** — root directory `backend`. `vercel.json` sets the security headers and the
+  daily `/api/health` cron. Hobby plans allow one cron a day, which is what the schedule uses.
+- **Frontend** — root directory `frontend`. `vercel.json` rewrites `/api/:path*` to the
+  backend deployment so the browser only ever talks to one origin, and rewrites `/s/:code`
+  to `index.html` so short links resolve in the SPA instead of 404ing.
+
+Point `AUTH_URL` at the backend domain and `APP_URL` at the frontend domain. Env var
+changes need a redeploy to take effect.
 
 ## Production
 

@@ -27,7 +27,13 @@ AUTH_URL="http://localhost:3000"
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
 
-# Pro plan via Stripe (optional — Pro stays hidden in the UI until all four are set)
+# Rate limiting (optional — falls back to an in-memory limiter when unset,
+# which only limits one instance, so set both in production)
+UPSTASH_REDIS_REST_URL=""
+UPSTASH_REDIS_REST_TOKEN=""
+
+# Pro plan via Stripe (optional — Pro stays hidden in the UI until the secret key
+# and both price ids are set; the webhook secret is only needed to sync subscriptions)
 STRIPE_SECRET_KEY=""
 STRIPE_WEBHOOK_SECRET=""
 STRIPE_PRICE_MONTHLY=""
@@ -56,11 +62,12 @@ See [setup.md](./setup.md) for the full auth/DB walkthrough (Google OAuth, Neon,
 src/
 ├── auth.ts                       Auth.js config (Credentials + Google, JWT)
 ├── app/
+│   ├── api/health/               liveness check for the daily cron
 │   ├── api/auth/[...nextauth]/   NextAuth handlers
 │   ├── api/auth/signup/          username/password signup
 │   ├── api/searches/             saved-hand list + create (LRU-capped)
 │   ├── api/searches/[id]/        favorite, rename, touch, or delete one
-│   ├── api/searches/import/     bulk hand-history import, deduped by the site's hand id
+│   ├── api/searches/import/      bulk hand-history import, deduped by the site's hand id
 │   ├── api/billing/              status, Stripe Checkout + Customer Portal sessions
 │   ├── api/webhooks/stripe/      signed webhook that mirrors subscriptions onto users
 │   ├── api/share/                Pro short links: create + list, resolve/rename/delete one
@@ -85,6 +92,16 @@ src/
 └── types/next-auth.d.ts
 ```
 
+## Data model
+
+Prisma models in `prisma/schema.prisma`:
+
+- `User` — account, plan, and Stripe customer/subscription fields
+- `Account` · `Session` · `VerificationToken` — Auth.js tables
+- `Search` — a saved hand or replay, LRU-pruned past the plan cap; `(userId, handId)` is unique so an imported hand can only land once
+- `ShareLink` — Pro short links keyed by a public `code`
+- `SavedRange` · `SavedSolve` — the per-account library, each capped by plan
+
 ## API
 
 - `GET /api/health` — liveness check; a daily Vercel cron hits it so Neon and Upstash never idle out
@@ -93,7 +110,7 @@ src/
 - `GET /api/searches/[id]` — the full saved hand
 - `DELETE /api/searches` — delete every non-favorite
 - `POST /api/searches` — save a hand (prunes least-recently-used non-favorites past the per-user cap)
-- `POST /api/searches/import` — save up to 25 hands in one request; `(userId, handId)` is unique, so re-importing a log adds nothing and the reply reports `{ saved, duplicates }`
+- `POST /api/searches/import` — save up to 25 hands in one request; `(userId, handId)` is unique, so re-importing a log adds nothing. The reply reports `{ saved, duplicates, dropped }`, where `dropped` counts rows written and then pruned past the plan cap
 - `PATCH /api/searches/[id]` — toggle favorite, rename, or touch (mark recently used)
 - `DELETE /api/searches/[id]` — delete a hand
 - `GET /api/billing/status` — current plan, save cap, and usage
@@ -108,7 +125,7 @@ src/
 - `PATCH /api/ranges/[id]` · `DELETE /api/ranges/[id]` — rename or replace keys / delete
 - `GET /api/solves` · `POST /api/solves` — list / save a solver spot (`{ name, config, summary }`)
 - `PATCH /api/solves/[id]` · `DELETE /api/solves/[id]` — rename / delete
-- `GET /api/stats/hands` — imported hands with their stored per-hand stats (Pro; full replay for rows not yet analysed)
+- `GET /api/stats/hands` — imported hands with their stored per-hand stats (Pro; rows never analysed, or analysed by an older stats version, come back with the full replay so the client can re-analyse them)
 - `POST /api/stats/backfill` — store client-computed stats on older imported hands (Pro)
 
 ## License
