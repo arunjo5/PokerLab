@@ -90,7 +90,7 @@ describe('freeFeatures / proFeatures', () => {
     expect(freeFeatures(LIMITS)).toEqual([
       'Equity calculator, ranges, pot odds & MDF',
       'Heads-up river solver',
-      'Hand replayer with PokerNow import',
+      'Hand replayer with PokerNow, PokerStars & GGPoker import',
       'Save up to 1,000 hands',
       '9 saved ranges and 7 saved solves',
       'Share links',
@@ -100,7 +100,7 @@ describe('freeFeatures / proFeatures', () => {
       'Save up to 12,345 hands',
       '42 saved ranges and 43 saved solves',
       '900 permanent short share links',
-      'Session stats from your PokerNow imports',
+      'Session stats from your imported hands',
       'Exploit solver against real opponent tendencies',
       'Support PokerLab’s development',
     ]);

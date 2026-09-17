@@ -270,6 +270,6 @@ describe('the stats page inside the app', () => {
     renderApp();
     await findChip();
     fireEvent.click(screen.getByRole('button', { name: /Pro/ }));
-    expect(await screen.findByText('Session stats from your PokerNow imports')).toBeInTheDocument();
+    expect(await screen.findByText('Session stats from your imported hands')).toBeInTheDocument();
   });
 });

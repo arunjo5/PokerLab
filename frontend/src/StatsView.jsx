@@ -189,7 +189,7 @@ export function StatsView({ onExit, onNavigate, themeToggle, userMenu, user, pla
         <div className="stats-head">
           <div>
             <h1 className="stats-title">Session stats</h1>
-            <div className="stats-sub">Results from your imported PokerNow hands.</div>
+            <div className="stats-sub">Results from your imported hands.</div>
           </div>
           {isPro && all && all.hands > 0 && (
             <div className="stats-controls">
@@ -209,7 +209,7 @@ export function StatsView({ onExit, onNavigate, themeToggle, userMenu, user, pla
         {!user ? (
           <div className="stats-empty">
             <div className="stats-empty-title">Sign in to see your stats</div>
-            <div className="stats-empty-sub">Import a PokerNow log from your account menu and your numbers appear here.</div>
+            <div className="stats-empty-sub">Import a hand history from your account menu and your numbers appear here.</div>
           </div>
         ) : !isPro ? (
           <div className="stats-empty">
@@ -228,7 +228,7 @@ export function StatsView({ onExit, onNavigate, themeToggle, userMenu, user, pla
         ) : all.hands === 0 ? (
           <div className="stats-empty">
             <div className="stats-empty-title">No imported hands yet</div>
-            <div className="stats-empty-sub">Import a PokerNow log from your account menu. Hands you were dealt into count toward your stats.</div>
+            <div className="stats-empty-sub">Import a hand history from your account menu. Hands you were dealt into count toward your stats.</div>
           </div>
         ) : (
           <>
